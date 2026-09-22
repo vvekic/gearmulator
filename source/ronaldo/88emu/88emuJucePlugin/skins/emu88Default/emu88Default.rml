@@ -1,0 +1,43 @@
+<rml>
+	<head>
+		<link type="text/rcss" href="tus_default.rcss"/>
+		<link type="text/rcss" href="emu88Default.rcss"/>
+	</head>
+	<body id="Root" rootScale="0.5" style="left: 0dp; top: 0dp; width: 1920dp; height: 1080dp;">
+		<div class="panel" data-model="plugin">
+
+			<div class="header">
+				<div class="title">{{name}}</div>
+				<div class="version">{{versionString}}</div>
+			</div>
+
+			<div class="lcd">
+				<div class="lcdModel">{{deviceModel}}</div>
+				<div class="lcdStatus">{{deviceStatus}}</div>
+			</div>
+
+			<div class="row">
+				<div class="label">Device</div>
+				<combo id="deviceModelSelector" class="selector" popup="window"><combotext/></combo>
+				<button id="btRestart" class="button action">Restart</button>
+			</div>
+
+			<div class="row">
+				<div class="label">MIDI</div>
+				<button id="btGmReset" class="button action">GM Reset</button>
+				<button id="btGsReset" class="button action">GS Reset</button>
+				<button id="btAllNotesOff" class="button action">All Notes Off</button>
+			</div>
+
+			<div class="spacer"></div>
+
+			<div class="row footer">
+				<div class="label">ROM folder</div>
+				<div class="path">{{romFolder}}</div>
+				<button id="btRomFolder" class="button action">Open</button>
+				<button id="btSettings" class="button action">Settings</button>
+			</div>
+
+		</div>
+	</body>
+</rml>

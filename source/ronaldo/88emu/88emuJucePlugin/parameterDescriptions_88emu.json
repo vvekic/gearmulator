@@ -1,0 +1,25 @@
+{
+	"parameterdescriptiondefaults":
+	{
+		"isPublic":true,
+		"isBipolar":false,
+		"toText":{"format":"%.0f"},
+		"name":"",
+		"class":"",
+		"min":0,
+		"max":127,
+		"isBool":false,
+		"isDiscrete":false,
+		"page":0,
+		"step":0
+	},
+	"valuelists":
+	{
+	},
+	"parameterdescriptions":
+	[
+	],
+	"midipackets":
+	{
+	}
+}

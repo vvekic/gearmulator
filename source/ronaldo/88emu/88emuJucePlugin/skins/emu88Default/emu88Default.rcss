@@ -1,0 +1,154 @@
+/* Sizes are in dp at twice the pixel size, the document is shown with rootScale 0.5 */
+
+#Root
+{
+	font-size: 32dp;
+	background-color: #1b1d20;
+	color: #d8dadc;
+}
+
+.panel
+{
+	position: absolute;
+	left: 0dp;
+	top: 0dp;
+	width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	padding: 56dp 72dp 48dp 72dp;
+	display: flex;
+	flex-direction: column;
+}
+
+.header
+{
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: flex-end;
+	flex-shrink: 0;
+	height: 104dp;
+	box-sizing: border-box;
+	padding-bottom: 16dp;
+	border-bottom: 2dp #3a3e44;
+}
+
+.title
+{
+	font-size: 72dp;
+	font-weight: bold;
+	color: #f0f0f0;
+}
+
+.version
+{
+	font-size: 28dp;
+	color: #7c828a;
+}
+
+/* The display: an amber backlit glass, as the boards' own */
+
+.lcd
+{
+	flex-shrink: 0;
+	margin-top: 48dp;
+	height: 300dp;
+	box-sizing: border-box;
+	padding: 40dp 56dp 40dp 56dp;
+	border: 8dp #0e0f11;
+	decorator: linear-gradient(180deg, #f2b552, #d58a2a);
+	box-shadow: #0008 0dp 6dp 18dp 0dp inset;
+	color: #2b1a06;
+}
+
+.lcdModel
+{
+	font-size: 110dp;
+	font-weight: bold;
+	height: 140dp;
+	line-height: 140dp;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.lcdStatus
+{
+	font-size: 36dp;
+	margin-top: 24dp;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+/* Rows of controls, each led by a label */
+
+.row
+{
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex-shrink: 0;
+	margin-top: 56dp;
+	height: 88dp;
+}
+
+.spacer
+{
+	flex-grow: 1;
+}
+
+.label
+{
+	flex-shrink: 0;
+	width: 220dp;
+	font-size: 30dp;
+	color: #9aa0a8;
+}
+
+.selector
+{
+	flex-shrink: 0;
+	width: 800dp;
+	height: 80dp;
+	box-sizing: border-box;
+	margin-right: 32dp;
+	padding: 0dp 64dp 0dp 24dp;
+	border: 2dp #5a6068;
+	border-radius: 10dp;
+	background-color: #25282c;
+}
+
+.selector combotext
+{
+	height: 100%;
+	line-height: 76dp;
+}
+
+/* Two classes: an override of .button needs the higher specificity, a tie goes to the rule that came first */
+.button.action
+{
+	flex-shrink: 0;
+	min-width: 240dp;
+	height: 80dp;
+	line-height: 76dp;
+	box-sizing: border-box;
+	margin-right: 24dp;
+	padding: 0dp 32dp 0dp 32dp;
+	border: 2dp #5a6068;
+	border-radius: 10dp;
+}
+
+.row.footer
+{
+	margin-top: 0dp;
+}
+
+.path
+{
+	flex-grow: 1;
+	flex-shrink: 1;
+	margin-right: 32dp;
+	font-size: 28dp;
+	color: #7c828a;
+	white-space: nowrap;
+	overflow: hidden;
+}
