@@ -28,6 +28,8 @@ namespace emu88Lib
 		constexpr uint64_t g_minimumPanelEdgeSamples = 64;
 		// Longer than any supported board's power-on intro.
 		constexpr float g_fastBootSeconds = 10.0f;
+		// How often a subscribed editor gets the panel, at most. The player's panel polls at this rate too.
+		constexpr float g_panelPushRateHz = 30.0f;
 
 		using Screen = HardwareDevice::DisplaySnapshot::Screen;
 
@@ -93,6 +95,10 @@ namespace emu88Lib
 	                               const std::vector<uint8_t>& _pcmCard)
 		: synthLib::Device(_params)
 	{
+		m_onPanelSubscribe.set(m_sysexRemote.evSubscribe, [this] { onPanelSubscribe(); });
+		m_onPanelButtons.set(m_sysexRemote.evButtons, [this](const uint32_t& _buttons) { setPanelButtons(_buttons); });
+		m_onPanelEncoder.set(m_sysexRemote.evEncoder, [this](const int32_t& _detents) { turnPanelEncoder(_detents); });
+
 		if(!isDeviceModelValue(_params.customData))
 			return;
 		m_model = static_cast<DeviceModel>(_params.customData);
@@ -343,6 +349,9 @@ namespace emu88Lib
 	bool HardwareDevice::sendMidi(const synthLib::SMidiEvent& _event,
 	                              std::vector<synthLib::SMidiEvent>&)
 	{
+		// An editor operating the front panel, nothing the board itself would understand
+		if(!_event.sysex.empty() && m_sysexRemote.receive(_event.sysex))
+			return true;
 		m_midiIn.push_back(_event);
 		return true;
 	}
@@ -562,11 +571,51 @@ namespace emu88Lib
 			next.leds = m_sc8850->leds();
 			m_sc8850->lcd().renderMono(first.mono);
 		}
+		pushPanel(next);
 		std::unique_lock lock(m_displayMutex, std::try_to_lock);
 		if(!lock.owns_lock())
 			return; // The UI can keep its previous snapshot if it is busy.
 		next.revision = m_display.revision + 1;
 		m_display = std::move(next);
+	}
+
+	void HardwareDevice::pushPanel(const DisplaySnapshot& _snapshot)
+	{
+		if(!m_panelSubscriptionSamples)
+			return;
+
+		if(!m_panelPushAll && static_cast<float>(m_samplesSincePanelPush) < std::max(getSamplerate(), 1.0f) / g_panelPushRateHz)
+			return;
+
+		m_samplesSincePanelPush = 0;
+
+		// Internal: for the editor only, never to a port or the host
+		for(size_t i = 0; i < _snapshot.screens.size(); ++i)
+		{
+			const auto& screen = _snapshot.screens[i];
+			if(!m_panelPushAll && SysexRemoteControl::isSameScreen(screen, m_pushedPanel.screens[i]))
+				continue;
+			auto& ev = m_midiOut.emplace_back(synthLib::MidiEventSource::Internal);
+			SysexRemoteControl::createScreen(ev.sysex, static_cast<uint8_t>(i), screen);
+			m_pushedPanel.screens[i] = screen;
+		}
+
+		if(m_panelPushAll || _snapshot.leds != m_pushedPanel.leds)
+		{
+			auto& ev = m_midiOut.emplace_back(synthLib::MidiEventSource::Internal);
+			SysexRemoteControl::createLeds(ev.sysex, _snapshot.leds);
+			m_pushedPanel.leds = _snapshot.leds;
+		}
+
+		m_panelPushAll = false;
+	}
+
+	void HardwareDevice::onPanelSubscribe()
+	{
+		// A new subscriber has seen nothing yet, whatever we sent before
+		if(!m_panelSubscriptionSamples)
+			m_panelPushAll = true;
+		m_panelSubscriptionSamples = static_cast<uint64_t>(std::max(getSamplerate(), 1.0f) * SysexRemoteControl::g_subscriptionSeconds);
 	}
 
 	void HardwareDevice::processAudio(const synthLib::TAudioInputs&,
@@ -603,6 +652,11 @@ namespace emu88Lib
 		}
 		m_midiIn.erase(m_midiIn.begin(), m_midiIn.begin() + static_cast<ptrdiff_t>(next));
 		for(auto& event : m_midiIn) event.offset -= static_cast<uint32_t>(_samples);
+		if(m_panelSubscriptionSamples)
+		{
+			m_panelSubscriptionSamples -= std::min<uint64_t>(m_panelSubscriptionSamples, _samples);
+			m_samplesSincePanelPush += _samples;
+		}
 		if(_samples && isValid()) publishDisplaySnapshot();
 	}
 

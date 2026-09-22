@@ -10,6 +10,7 @@ set(SOURCES
 	analog/cmVca.h
 	c_interface.cpp c_interface.h
 	deviceModel.cpp deviceModel.h
+	displaySnapshot.h
 	boards/cm32p.cpp boards/cm32p.h
 	boards/cm64.cpp boards/cm64.h
 	boards/laBoard.cpp boards/laBoard.h
@@ -29,6 +30,7 @@ set(SOURCES
 	boards/sc88types.h
 	mcu/sc88_submcu.cpp mcu/sc88_submcu.h
 	boards/sc88pro.cpp boards/sc88pro.h
+	sysexRemoteControl.cpp sysexRemoteControl.h
 )
 
 target_sources(88lib PRIVATE ${SOURCES})

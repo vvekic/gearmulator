@@ -2,6 +2,10 @@
 
 #include "88lib/analog/analogOutput.h"
 #include "88lib/deviceModel.h"
+#include "88lib/displaySnapshot.h"
+#include "88lib/sysexRemoteControl.h"
+
+#include "baseLib/event.h"
 
 #include "synthLib/device.h"
 #include "synthLib/midiBufferParser.h"
@@ -45,37 +49,7 @@ namespace emu88Lib
 	class HardwareDevice final : public synthLib::Device
 	{
 	public:
-		struct DisplaySnapshot
-		{
-			enum class Type : uint8_t { None, Character, Graphic };
-
-			// One display panel. A Character screen hands over the controller's memory for the
-			// SC-88 panel renderer; a Graphic one is already a dot grid, width x height, row major.
-			struct Screen
-			{
-				Type type = Type::None;
-				std::array<uint8_t, 80> ddRam{};
-				std::array<uint8_t, 64> cgRam{};
-				std::vector<uint8_t> mono;
-				// The visible characters of a character display, one string per line, in the
-				// controller's character set (ASCII for the printable range). Empty on a
-				// graphic display.
-				std::vector<std::string> text;
-				uint16_t width = 0;
-				uint16_t height = 0;
-				bool displayOn = false;
-				// Whether the panel has its supply. The boards with a standby switch cut it there, which
-				// leaves the glass dark, where a display that is merely off still shows its backlight.
-				// displayOn is false as well then.
-				bool powered = true;
-			};
-
-			// Only a board with two panels fills the second - see deviceHasSecondLcd(), which is
-			// the CM-64 and its two service displays.
-			std::array<Screen, 2> screens;
-			uint16_t leds = 0;
-			uint64_t revision = 0;
-		};
+		using DisplaySnapshot = emu88Lib::DisplaySnapshot;
 
 		// _pcmCard is a raw card image for a board with a PCM card slot (the CM-32P, and the
 		// CM-64's PCM half); empty leaves the slot empty.
@@ -140,6 +114,10 @@ namespace emu88Lib
 		void collectPanelCommands();
 		void applyDuePanelCommand();
 		void publishDisplaySnapshot();
+		// Sends what changed on the panel since the last push to a subscribed editor, see
+		// SysexRemoteControl. Called with every snapshot, pushes at most g_panelPushRateHz times a second.
+		void pushPanel(const DisplaySnapshot& _snapshot);
+		void onPanelSubscribe();
 		void handleTransportDiscontinuity(uint32_t generation);
 		void silenceActiveChannels();
 		void trackMidiActivity(const synthLib::SMidiEvent& event);
@@ -177,6 +155,18 @@ namespace emu88Lib
 
 		mutable std::mutex m_displayMutex;
 		DisplaySnapshot m_display;
+
+		// The front panel for an editor that reaches us through MIDI only. Audio thread only.
+		SysexRemoteControl m_sysexRemote;
+		baseLib::EventListener<> m_onPanelSubscribe;
+		baseLib::EventListener<uint32_t> m_onPanelButtons;
+		baseLib::EventListener<int32_t> m_onPanelEncoder;
+		// Samples until the subscription runs out, 0 while there is none.
+		uint64_t m_panelSubscriptionSamples = 0;
+		uint64_t m_samplesSincePanelPush = 0;
+		// Set by a new subscription: the next push sends everything, changed or not.
+		bool m_panelPushAll = false;
+		DisplaySnapshot m_pushedPanel;
 
 		AnalogOutput m_analogOutput;
 		// The board's own output amplifiers, applied whatever the analog setting is: switching

@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 
 project(88emuJucePlugin VERSION ${CMAKE_PROJECT_VERSION})
 
+# The front panel is the standalone player's: its display renderer and its artwork are used from
+# there, so that both show the boards the same way. The player's own target is only there with
+# the standalone format, so its files are compiled and embedded here directly.
+set(PLAYER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../88emuplayer)
+
 set(SOURCES
 	emu88Controller.cpp emu88Controller.h
 	emu88Editor.cpp emu88Editor.h
@@ -11,9 +16,48 @@ set(SOURCES
 
 	skins/emu88Default/emu88Default.rml
 	skins/emu88Default/emu88Default.rcss
+
+	${PLAYER_DIR}/ui/Emu88EditorBindings.h
+	${PLAYER_DIR}/ui/Emu88EditorLcd.h
+	${PLAYER_DIR}/ui/lcd_font.cpp
+	${PLAYER_DIR}/ui/panel.cpp ${PLAYER_DIR}/ui/panel.hpp
 )
 
-SET(ASSETS "parameterDescriptions_88emu.json")
+set(PANEL_ASSETS
+	${PLAYER_DIR}/assets/sc88_panel.png
+	${PLAYER_DIR}/assets/sc88vl_panel.png
+	${PLAYER_DIR}/assets/sc88pro_panel.png
+	${PLAYER_DIR}/assets/sc8850_panel.png
+	${PLAYER_DIR}/assets/sc55_panel.png
+	${PLAYER_DIR}/assets/sc55mk2_panel.png
+	${PLAYER_DIR}/assets/sc8820_panel.png
+	${PLAYER_DIR}/assets/cm32p_panel.png
+	${PLAYER_DIR}/assets/cm32l_panel.png
+	${PLAYER_DIR}/assets/cm64_panel.png
+	${PLAYER_DIR}/assets/sc88exp_panel.png
+	${PLAYER_DIR}/assets/sc55pc_panel.png
+	${PLAYER_DIR}/assets/sc8850_assets.png
+	${PLAYER_DIR}/assets/button_all.svg
+	${PLAYER_DIR}/assets/button_left.svg
+	${PLAYER_DIR}/assets/button_right.svg
+	${PLAYER_DIR}/assets/button_round.svg
+	${PLAYER_DIR}/assets/button_led_on.svg
+	${PLAYER_DIR}/assets/button_part_left.svg
+	${PLAYER_DIR}/assets/button_part_right.svg
+	${PLAYER_DIR}/assets/button_plain.svg
+	${PLAYER_DIR}/assets/preview.svg
+	${PLAYER_DIR}/assets/selector_led_off.svg
+	${PLAYER_DIR}/assets/selector_led_on.svg
+	${PLAYER_DIR}/assets/efx_led_off.svg
+	${PLAYER_DIR}/assets/efx_led_on.svg
+	${PLAYER_DIR}/assets/efx_led_green.svg
+	${PLAYER_DIR}/assets/efx_led_amber.svg
+	${PLAYER_DIR}/assets/cm_led_on.png
+	${PLAYER_DIR}/assets/knob.png
+	${PLAYER_DIR}/assets/value_knob.png
+)
+
+SET(ASSETS "parameterDescriptions_88emu.json" ${PANEL_ASSETS})
 
 addSkin("Emu88" "emu88Default" "skins/emu88Default" "emu88Default.rml")
 

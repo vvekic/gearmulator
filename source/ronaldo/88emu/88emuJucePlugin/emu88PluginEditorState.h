@@ -13,6 +13,7 @@ namespace emu88JucePlugin
 
 	private:
 		jucePluginEditorLib::Editor* createEditor(const jucePluginEditorLib::Skin& _skin) override;
+		void initContextMenu(juceRmlUi::Menu& _menu) override;
 
 		AudioPluginAudioProcessor& m_emu88Processor;
 	};

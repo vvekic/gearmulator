@@ -293,6 +293,7 @@ Use custom sysex for everything the hardware cannot send or receive over MIDI.
 | Xenia | Waldorf `f0 3e 0e`, commands `60`-`62` | LCD, LEDs, buttons |
 | NodalRed2x | Clavia `f0 33 0f 04`, types `5a`-`5d` | set and get pot positions, part CC, master tune |
 | JE8086 | `f0 7d <cmd> ... f7` (non-commercial id) | LCD CGRAM and DDRAM, button, LEDs, SetParam for emulator parameters such as master volume |
+| Emu88 | `f0 7d 38 38 <cmd> ... f7` (non-commercial id) | displays, LEDs, switches, encoder; the device pushes its panel only while the editor renews a subscription, so a host that forwards everything the device emits (the standalone player) never sees it |
 
 Recipe, JE8086 being the cleanest implementation:
 
