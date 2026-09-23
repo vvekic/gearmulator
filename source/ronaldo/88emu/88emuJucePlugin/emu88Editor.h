@@ -10,7 +10,10 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace emu88Player
 {
@@ -45,6 +48,14 @@ namespace emu88JucePlugin
 
 		std::pair<std::string, std::string> getDemoRestrictionText() const override;
 
+		// The framework's pages plus our own, see emu88SettingsRoms.h: which board plays is a
+		// question of which dumps the plugin can find, so where they are belongs in the dialog
+		void registerSettings(std::vector<std::unique_ptr<jucePluginEditorLib::SettingsPlugin>>& _plugins) override;
+
+		// Opens a folder chooser at the ROM folder in use and hands the choice to _onChosen. The
+		// editor owns the chooser, so a settings page closed while it is up never hears back
+		void browseRomFolder(std::function<void(const std::string&)> _onChosen);
+
 	private:
 		void timerCallback() override;
 
@@ -74,6 +85,8 @@ namespace emu88JucePlugin
 
 		AudioPluginAudioProcessor& m_processor;
 		Controller& m_controller;
+
+		std::unique_ptr<juce::FileChooser> m_romFolderChooser;
 
 		std::unique_ptr<emu88Player::HardwareLcd> m_lcd;
 		// The skin's second display, which only the CM-64 shows

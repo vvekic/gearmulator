@@ -14,6 +14,7 @@ set(SOURCES
 	emu88Editor.cpp emu88Editor.h
 	emu88PluginEditorState.cpp emu88PluginEditorState.h
 	emu88PluginProcessor.cpp emu88PluginProcessor.h
+	emu88SettingsRoms.cpp emu88SettingsRoms.h
 	parameterDescriptions_88emu.json
 
 	skins/emu88Default/emu88Default.rml
@@ -61,7 +62,12 @@ set(PANEL_ASSETS
 	${PLAYER_DIR}/assets/value_knob.png
 )
 
-SET(ASSETS "parameterDescriptions_88emu.json" ${PANEL_ASSETS})
+# The ROMs page of the settings dialog. The framework picks a tus_settings_*_<Product>.rml out of
+# our binary data by itself and makes it available as a template, see Editor::createRmlUiComponent.
+SET(ASSETS "parameterDescriptions_88emu.json"
+	"tus_settings_roms_Emu88.rml"
+	"tus_settings_roms_Emu88.rcss"
+	${PANEL_ASSETS})
 
 addSkin("Emu88" "emu88Default" "skins/emu88Default" "emu88Default.rml")
 

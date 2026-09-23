@@ -113,6 +113,23 @@ namespace synthLib
 		g_callerAddedPath = true;
 	}
 
+	void RomLoader::removeSearchPath(const std::string& _path)
+	{
+		const std::lock_guard lock(searchPathMutex());
+		ensureDefaultSearchPaths();
+
+		const auto path = baseLib::filesystem::validatePath(_path);
+
+		// The binary's own folders are installed by the loader itself and are not a caller's to
+		// remove - dropping one would leave a plugin unable to find the ROMs next to it.
+		if(path == baseLib::filesystem::validatePath(getModulePath(true)) ||
+			path == baseLib::filesystem::validatePath(getModulePath(false)))
+			return;
+
+		g_searchPaths.erase(path);
+		g_recursiveSearchPaths.erase(path);
+	}
+
 	void RomLoader::addSearchPath(const std::string& _path, const bool _recursive)
 	{
 		const std::lock_guard lock(searchPathMutex());

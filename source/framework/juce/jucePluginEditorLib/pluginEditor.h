@@ -159,7 +159,9 @@ namespace jucePluginEditorLib
 		juceRmlUi::Menu createExportFileTypeMenu(const std::function<void(pluginLib::FileType)>& _func) const;
 		virtual void createExportFileTypeMenu(juceRmlUi::Menu& _menu, const std::function<void(pluginLib::FileType)>& _func) const;
 
-		void registerSettings(std::vector<std::unique_ptr<SettingsPlugin>>& _plugins);
+		// The pages of the settings dialog, in the order their buttons appear. A product that has a
+		// subject of its own to settle - where its ROMs are, for one - adds a page here
+		virtual void registerSettings(std::vector<std::unique_ptr<SettingsPlugin>>& _plugins);
 
 		virtual std::unique_ptr<SettingsDeviceSpecific> createDeviceSpecificSettings(const std::string& _templateName, Rml::Element* _root) { return nullptr; }
 

@@ -1,0 +1,30 @@
+<template name="tus_settings_roms_Emu88">
+<head>
+	<link type="text/rcss" href="tus_settings_roms_Emu88.rcss"/>
+</head>
+<body>
+	<div class="settings-page">
+		<h1>ROMs</h1>
+		<settingsspacer1/>
+		<h3>ROM Folder</h3>
+		<div class="settings-hlayout emu88-rom-row">
+			<input id="romPath" class="emu88-rom-path" type="text"/>
+			<button id="btBrowse" class="button">Browse...</button>
+			<button id="btOpenFolder" class="button">Show</button>
+		</div>
+		<div class="emu88-rom-note">Searched with everything below it, on top of the plugin's own folder. Leave it empty to use only that one.</div>
+		<settingsspacer1/>
+		<h3>Plugin ROM Folder</h3>
+		<div class="settings-hlayout emu88-rom-row">
+			<div id="lbDefaultFolder" class="emu88-rom-note emu88-rom-grow"/>
+			<button id="btOpenDefaultFolder" class="button">Show</button>
+		</div>
+		<settingsspacer1/>
+		<h3>Boards</h3>
+		<div id="lbBoards" class="emu88-rom-boards"/>
+		<settingsspacer1/>
+		<button id="btRescan" class="button" style="display: inline-block;">Rescan</button>
+		<settingsspacer1/>
+	</div>
+</body>
+</template>

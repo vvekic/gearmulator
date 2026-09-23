@@ -181,5 +181,28 @@ body { position: relative; left: 0dp; top: 0dp; width: 532dp; height: 187dp; bac
 .lcdUnpowered .lcdUnlit { display: block; }
 
 /* The framework's settings dialog lives in this document, which is a lot smaller in dp than the
- * framework's skins are. Scale it down so that its pages fit; an id beats the dialog's own rule. */
+ * framework's skins are: 532 x 187 dp against their thousand-odd. The dialog is written in em
+ * throughout, so a smaller root font does most of the fitting; an id beats its own rules.
+ *
+ * What the font size alone does not fix is the category column. It is a flex column, and a flex box
+ * given less room than its children need shrinks them rather than scrolling: at 187 dp its buttons
+ * came out shorter than their own text, which is what pushed the labels out of the pills. So
+ * nothing in there may shrink, and the column brings its own spacing, tight enough for the close
+ * button, the headline, seven category buttons and the checkbox to fit between the panel's edges.
+ * The overflow is the safety net for a font size that still ends up too generous. */
 #Root .settings-root { width: 94%; height: 94%; font-size: 7dp; }
+#Root .settings-categories { gap: 0.35em; padding-top: 0.5em; padding-bottom: 0.5em; overflow-y: auto; }
+#Root .settings-categories br { display: none; }
+#Root .settings-close-button, #Root .settings-headline,
+#Root .settings-category-button, #Root .settings-checkboxwithlabel { flex-shrink: 0; }
+/* Border box, because the framework's buttons carry a 1 em padding that a percentage width knows
+ * nothing about: 60% of the column plus 2 em is wider than the column itself. The line box is the
+ * content box, so the label sits in the middle of the pill instead of below it. */
+#Root .settings-category-button { box-sizing: border-box; width: 80%; height: 1.7em; line-height: 1.5em; padding: 0dp 0.4em; font-size: 1.15em; }
+#Root .settings-close-button { box-sizing: border-box; width: 1.8em; height: 1.5em; line-height: 1.3em; padding: 0dp; font-size: 1.1em; margin-left: 0.8em; }
+#Root .settings-headline { font-size: 1.6em; }
+/* A page has the same 187 dp to live in, so its headings are a notch below the framework's
+ * 2 em / 1.5 em / 1.2 em as well. */
+#Root .settings-page h1 { font-size: 1.5em; }
+#Root .settings-page h2 { font-size: 1.25em; }
+#Root .settings-page h3 { font-size: 1.1em; }

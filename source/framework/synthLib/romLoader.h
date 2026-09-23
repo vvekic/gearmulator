@@ -30,5 +30,11 @@ namespace synthLib
 		// Finder or Explorer is "/" or "C:\\", and is whatever a DAW left behind for a
 		// plugin. Only the command-line tools, which never call this, still search it.
 		static void addSearchPath(const std::string& _path, bool _recursive = false);
+
+		// Takes a path added with addSearchPath() back off the list. The search paths are
+		// process-global, so a product whose ROM folder the user can change has to drop the
+		// old one, or the rest of the session keeps searching both. The module folders are
+		// the loader's own and stay whatever is asked of it.
+		static void removeSearchPath(const std::string& _path);
 	};
 }

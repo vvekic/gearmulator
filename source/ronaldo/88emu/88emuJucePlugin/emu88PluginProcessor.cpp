@@ -10,6 +10,7 @@
 #include "88lib/rom/romloader.h"
 
 #include "baseLib/binarystream.h"
+#include "baseLib/filesystem.h"
 
 #include "jucePluginLib/processorPropertiesInit.h"
 
@@ -21,6 +22,7 @@ namespace emu88JucePlugin
 	namespace
 	{
 		constexpr const char* const g_configKeyDeviceModel = "deviceModel";
+		constexpr const char* const g_configKeyRomSearchPath = "romSearchPath";
 	}
 
 	AudioPluginAudioProcessor::AudioPluginAudioProcessor()
@@ -35,6 +37,13 @@ namespace emu88JucePlugin
 		// product in the process, and JE8086 takes any 512k .bin it finds there for its firmware,
 		// which an SC-88 control ROM is.
 		synthLib::RomLoader::addSearchPath(getPublicRomFolder(), true);
+
+		// Where the user keeps the dumps, if they are not in our own folder. Before the first scan
+		// below, which is what decides which board comes up
+		m_romSearchPath = baseLib::filesystem::validatePath(getConfig().getValue(g_configKeyRomSearchPath, "").toStdString());
+
+		if(!m_romSearchPath.empty())
+			synthLib::RomLoader::addSearchPath(m_romSearchPath, true);
 
 		m_deviceModel = getDefaultDeviceModel();
 
@@ -136,6 +145,33 @@ namespace emu88JucePlugin
 	bool AudioPluginAudioProcessor::restartDevice()
 	{
 		return bootDevice(m_deviceModel, false);
+	}
+
+	bool AudioPluginAudioProcessor::setRomSearchPath(const std::string& _path)
+	{
+		// A pasted path often brings a trailing space or line break along
+		const auto path = baseLib::filesystem::validatePath(juce::String::fromUTF8(_path.c_str()).trim().toStdString());
+
+		if(path == m_romSearchPath)
+			return true;
+
+		// The search paths belong to the process, not to us, so the folder that was ours has to go
+		// before the new one arrives - both would be searched for the rest of the session otherwise.
+		// Our own ROM folder is not ours to drop, whatever the user pointed us at before
+		if(!m_romSearchPath.empty() && m_romSearchPath != baseLib::filesystem::validatePath(getPublicRomFolder()))
+			synthLib::RomLoader::removeSearchPath(m_romSearchPath);
+
+		m_romSearchPath = path;
+
+		if(!m_romSearchPath.empty())
+			synthLib::RomLoader::addSearchPath(m_romSearchPath, true);
+
+		getConfig().setValue(g_configKeyRomSearchPath, juce::String(m_romSearchPath));
+		getConfig().saveIfNeeded();
+
+		// Rescans the folder and boots the board from what is in it now. Reports its own failure and
+		// keeps the running board in that case
+		return restartDevice();
 	}
 
 	bool AudioPluginAudioProcessor::isModelAvailable(const emu88Lib::DeviceModel _model)

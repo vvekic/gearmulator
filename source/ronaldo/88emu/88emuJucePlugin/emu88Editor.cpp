@@ -2,6 +2,7 @@
 
 #include "emu88Controller.h"
 #include "emu88PluginProcessor.h"
+#include "emu88SettingsRoms.h"
 
 #include "88emuplayer/ui/Emu88EditorBindings.h"
 #include "88emuplayer/ui/Emu88EditorLcd.h"
@@ -126,6 +127,43 @@ namespace emu88JucePlugin
 	std::pair<std::string, std::string> Editor::getDemoRestrictionText() const
 	{
 		return {};
+	}
+
+	void Editor::registerSettings(std::vector<std::unique_ptr<jucePluginEditorLib::SettingsPlugin>>& _plugins)
+	{
+		jucePluginEditorLib::Editor::registerSettings(_plugins);
+
+		_plugins.push_back(std::make_unique<SettingsRoms>(m_processor));
+	}
+
+	void Editor::browseRomFolder(std::function<void(const std::string&)> _onChosen)
+	{
+		// Start where we are looking now, which is the plugin's own folder until the user says
+		// otherwise, and their home folder if neither is there any more
+		const auto& configured = m_processor.getRomSearchPath();
+		const auto start = configured.empty() ? m_processor.getPublicRomFolder() : configured;
+
+		juce::File folder(juce::String::fromUTF8(start.c_str()));
+
+		if(!folder.isDirectory())
+			folder = juce::File::getSpecialLocation(juce::File::userHomeDirectory);
+
+		m_romFolderChooser = std::make_unique<juce::FileChooser>("Select the folder that holds the ROM dumps", folder);
+
+		const juce::WeakReference<jucePluginEditorLib::Editor> safeThis(this);
+
+		m_romFolderChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+			[safeThis, onChosen = std::move(_onChosen)](const juce::FileChooser& _chooser)
+		{
+			auto* editor = dynamic_cast<Editor*>(safeThis.get());
+			if(!editor)
+				return;
+
+			if(!_chooser.getResults().isEmpty())
+				onChosen(_chooser.getResult().getFullPathName().toStdString());
+
+			editor->m_romFolderChooser.reset();
+		});
 	}
 
 	void Editor::timerCallback()

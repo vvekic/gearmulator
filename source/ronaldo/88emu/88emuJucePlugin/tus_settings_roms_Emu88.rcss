@@ -1,0 +1,24 @@
+/* The ROMs page, see emu88SettingsRoms.cpp. Sized in em like the rest of the settings dialog, so
+ * that the panel skin's smaller dialog font carries through to it. */
+
+.emu88-rom-row {
+	width: 100%;
+}
+
+/* The field takes whatever the two buttons next to it leave. */
+.emu88-rom-path, .emu88-rom-grow {
+	flex: 1 1 auto;
+	min-width: 6em;
+}
+
+/* A path has no spaces to wrap at, so it is allowed to break wherever it has to. */
+.emu88-rom-note {
+	color: #bbb;
+	font-size: 0.9em;
+	word-break: break-word;
+}
+
+/* One line per subject, and the missing filenames wrap rather than run off the page. */
+.emu88-rom-boards {
+	white-space: pre-wrap;
+}

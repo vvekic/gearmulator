@@ -6,6 +6,8 @@
 
 #include "baseLib/event.h"
 
+#include <string>
+
 namespace emu88JucePlugin
 {
 	class AudioPluginAudioProcessor : public jucePluginEditorLib::Processor
@@ -41,6 +43,16 @@ namespace emu88JucePlugin
 		// board that could not boot before, once its ROMs are in place
 		bool restartDevice();
 
+		// The folder the user pointed us at, searched with its subfolders on top of the ROM folder
+		// in the plugin's data directory. Empty while none is configured
+		const std::string& getRomSearchPath() const { return m_romSearchPath; }
+
+		// Searches _path from now on instead of the folder configured before, remembers it for every
+		// instance and boots the board again, so a set that has just turned up is the one playing.
+		// Returns what the boot returned: a board whose ROMs are not in the new folder says so and
+		// keeps running. An empty path leaves only the plugin's own ROM folder
+		bool setRomSearchPath(const std::string& _path);
+
 		// Whether _model is offered at all and its ROM set is complete
 		static bool isModelAvailable(emu88Lib::DeviceModel _model);
 
@@ -51,6 +63,7 @@ namespace emu88JucePlugin
 
 		emu88Lib::DeviceModel m_deviceModel = emu88Lib::DeviceModel::Sc88Pro;
 		bool m_boardRunning = false;
+		std::string m_romSearchPath;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 	};
