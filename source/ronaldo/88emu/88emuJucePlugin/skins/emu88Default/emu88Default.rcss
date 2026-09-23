@@ -1,5 +1,9 @@
 /* The standalone player's panel stylesheet (88emuplayer/assets/emu88Player.rcss) without the rules
- * of its MIDI file player. Plugin additions are at the end. */
+ * of its MIDI file player. Plugin additions are at the end.
+ *
+ * The panels here are 532 dp wide, not the player's 612 dp: assets/makeNarrowPanels.py cuts the
+ * player's PLAYLIST column (16 dp .. 96 dp) out of its artwork, so everything right of it sits
+ * 80 dp further left than in emu88Player.rcss. The device name at the bottom left does not move. */
 
 @spritesheet knob
 {
@@ -56,30 +60,34 @@
 	value_032: 0px 0px 128px 128px; src: value_knob.png;
 }
 
-body { position: relative; left: 0dp; top: 0dp; width: 612dp; height: 187dp; background-color: #000; overflow: hidden; }
-.panel { position: absolute; left: 0dp; top: 0dp; width: 612dp; height: 187dp; pointer-events: none; }
-.lcd { position: absolute; left: 156dp; top: 22dp; width: 209dp; height: 76dp; pointer-events: none; }
-.modelSc8850 .lcd { left: 165dp; top: 28dp; width: 175dp; height: 70dp; }
-.modelCm .lcd { left: 162dp; top: 23dp; width: 218dp; height: 41dp; }	/* the whole window; the dots sit inset */
+body { position: relative; left: 0dp; top: 0dp; width: 532dp; height: 187dp; background-color: #000; overflow: hidden; }
+.panel { position: absolute; left: 0dp; top: 0dp; width: 532dp; height: 187dp; pointer-events: none; }
+.lcd { position: absolute; left: 76dp; top: 22dp; width: 209dp; height: 76dp; pointer-events: none; }
+.modelSc8850 .lcd { left: 85dp; top: 28dp; width: 175dp; height: 70dp; }
+.modelCm .lcd { left: 82dp; top: 23dp; width: 218dp; height: 41dp; }	/* the whole window; the dots sit inset */
 .modelCm .powerOffDisplay { padding-top: 14dp; }
 /* The CM-32L's own bezel carries a single short window where the CM-32P has its tall one; the
  * MT-32s' 20-character display sits in the same window. */
-.modelCm32l .lcd { left: 162dp; top: 34dp; width: 218dp; height: 20dp; }
+.modelCm32l .lcd { left: 82dp; top: 34dp; width: 218dp; height: 20dp; }
 .modelCm32l .powerOffDisplay { padding-top: 4dp; font-size: 11dp; }
 /* The CM-64 keeps the CM-32P window above and adds the CM-32L's below it. Only that bezel
  * has a second one, so it stays out of the layout everywhere else. */
-.lcdSecond { display: none; position: absolute; left: 162dp; top: 81dp; width: 218dp; height: 20dp; pointer-events: none; }
+.lcdSecond { display: none; position: absolute; left: 82dp; top: 81dp; width: 218dp; height: 20dp; pointer-events: none; }
 .modelCm64 #hardwareLcd2 { display: block; }
 .powerOffPanel { background-color: #272c29; }
 /* RML's <body> is the document itself, so the power state and the model class end up on the
  * same element: these have to be compounded, not nested. */
 .powerOff #hardwareLcd2 { visibility: hidden; }
 .powerOff.modelCm64 #powerOffDisplay2 { display: block; }
-.modelSc8820 .lcd { left: 164dp; top: 28dp; width: 180dp; height: 71dp; }
-.volumeKnob { position: absolute; left: 112dp; top: 24dp; width: 28dp; height: 28dp; frames: 31; spriteprefix: knob_; decorator: image(knob_030 contain); cursor: pointer; }
+.modelSc8820 .lcd { left: 84dp; top: 28dp; width: 180dp; height: 71dp; }
+.volumeKnob { position: absolute; left: 32dp; top: 24dp; width: 28dp; height: 28dp; frames: 31; spriteprefix: knob_; decorator: image(knob_030 contain); cursor: pointer; }
 .deviceSelect { left: 25dp; top: 160dp; width: 120dp; height: 24dp; }
 .deviceSelect:hover { box-shadow: none; }
 .modelCm .deviceSelect { width: 131dp; }	/* the longer CMEmu32P name ends at 152dp */
+/* The SC-8850 is the only board with switches on its lower tier, and the cut moves F1 to where
+ * the name used to end, so its artwork carries the name scaled down and moved towards the left
+ * edge instead - see assets/makeNarrowPanels.py. */
+.modelSc8850 .deviceSelect { left: 5dp; top: 163dp; width: 91dp; height: 19dp; }
 .model8850 { display: none; }
 .modelSc8850 .modelLegacy { display: none; }
 .modelSc8850 .model8850 { display: block; }
@@ -114,7 +122,7 @@ body { position: relative; left: 0dp; top: 0dp; width: 612dp; height: 187dp; bac
 .preview { width: 20dp; height: 20dp; border-radius: 10dp; }
 .rocker { width: 27dp; height: 9dp; border-radius: 5dp; }
 .sc8850PanelButton { width: 17dp; height: 17dp; border-radius: 9dp; }
-.sc8850Preview { left: 114dp; top: 76dp; width: 24dp; height: 25dp; border-radius: 12dp; }
+.sc8850Preview { left: 34dp; top: 76dp; width: 24dp; height: 25dp; border-radius: 12dp; }
  /* Each face sprite is offset so the face circle from the SVG sits on the hit
  * box centre, i.e. on the switch hole baked into the panel; the crops carry
  * asymmetric drop shadows and glows, hence the odd offsets. */
@@ -134,7 +142,7 @@ body { position: relative; left: 0dp; top: 0dp; width: 612dp; height: 187dp; bac
 .hit:active .sc8850LedOnGraphic, .hit.pressed .sc8850LedOnGraphic,
 .hit:active .sc8850PreviewGraphic, .hit.pressed .sc8850PreviewGraphic { image-color: #bbb; }
 /* speed 224 = 7 logical pixels of drag per detent, the the panel feel. */
-.sc8850Value { left: 517dp; top: 17dp; width: 76dp; height: 76dp; border-radius: 38dp; frames: 33; spriteprefix: value_; decorator: image(value_000 contain); speed: 224; }
+.sc8850Value { left: 437dp; top: 17dp; width: 76dp; height: 76dp; border-radius: 38dp; frames: 33; spriteprefix: value_; decorator: image(value_000 contain); speed: 224; }
 .sc8850Value:active, .sc8850Value.pressed { image-color: #bbb; }
 
 .panelLed { position: absolute; pointer-events: none; }

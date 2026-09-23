@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 
 project(88emuJucePlugin VERSION ${CMAKE_PROJECT_VERSION})
 
-# The front panel is the standalone player's: its display renderer and its artwork are used from
-# there, so that both show the boards the same way. The player's own target is only there with
-# the standalone format, so its files are compiled and embedded here directly.
+# The front panel is the standalone player's: its display renderer and its switch faces are used
+# from there, so that both show the boards the same way. The player's own target is only there
+# with the standalone format, so its files are compiled and embedded here directly. The panels
+# themselves are in assets/: the player's, with its PLAYLIST column cut out by
+# assets/makeNarrowPanels.py, which is also what makes the plugin 80 dp narrower than the player.
 set(PLAYER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../88emuplayer)
 
 set(SOURCES
@@ -17,6 +19,8 @@ set(SOURCES
 	skins/emu88Default/emu88Default.rml
 	skins/emu88Default/emu88Default.rcss
 
+	assets/makeNarrowPanels.py
+
 	${PLAYER_DIR}/ui/Emu88EditorBindings.h
 	${PLAYER_DIR}/ui/Emu88EditorLcd.h
 	${PLAYER_DIR}/ui/lcd_font.cpp
@@ -24,18 +28,18 @@ set(SOURCES
 )
 
 set(PANEL_ASSETS
-	${PLAYER_DIR}/assets/sc88_panel.png
-	${PLAYER_DIR}/assets/sc88vl_panel.png
-	${PLAYER_DIR}/assets/sc88pro_panel.png
-	${PLAYER_DIR}/assets/sc8850_panel.png
-	${PLAYER_DIR}/assets/sc55_panel.png
-	${PLAYER_DIR}/assets/sc55mk2_panel.png
-	${PLAYER_DIR}/assets/sc8820_panel.png
-	${PLAYER_DIR}/assets/cm32p_panel.png
-	${PLAYER_DIR}/assets/cm32l_panel.png
-	${PLAYER_DIR}/assets/cm64_panel.png
-	${PLAYER_DIR}/assets/sc88exp_panel.png
-	${PLAYER_DIR}/assets/sc55pc_panel.png
+	assets/sc88_panel.png
+	assets/sc88vl_panel.png
+	assets/sc88pro_panel.png
+	assets/sc8850_panel.png
+	assets/sc55_panel.png
+	assets/sc55mk2_panel.png
+	assets/sc8820_panel.png
+	assets/cm32p_panel.png
+	assets/cm32l_panel.png
+	assets/cm64_panel.png
+	assets/sc88exp_panel.png
+	assets/sc55pc_panel.png
 	${PLAYER_DIR}/assets/sc8850_assets.png
 	${PLAYER_DIR}/assets/button_all.svg
 	${PLAYER_DIR}/assets/button_left.svg
