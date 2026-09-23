@@ -76,29 +76,59 @@ namespace emu88JucePlugin
 			return result;
 		}
 
-		// One line per image. The folder is only on the line that is the first to be in it: a
-		// board's dumps sit together, and repeating the folder would leave no room for the names
+		// The folder a dump sits in. Empty only in theory: getPath() hands the whole string back
+		// for a bare filename, and the scanner builds every path it reports from a search folder
+		std::string folderOf(const std::string& _path)
+		{
+			auto folder = baseLib::filesystem::getPath(_path);
+
+			return folder == _path ? std::string() : folder;
+		}
+
+		// One line per image, under the folder holding it. A line of its own has to be asked for:
+		// a div is inline in RmlUi unless a rule says otherwise, see tus_default.rcss. The folder
+		// is repeated only where the next image is somewhere else, a board's dumps sit together
+		// and it is the names that tell them apart
 		std::string describeFiles(const std::vector<const emu88Lib::FoundRom*>& _roms)
 		{
-			std::string rml;
-			std::string folder;
+			// One container can hold several of a board's images, embedded at offsets of their
+			// own, and is worth naming once rather than once per slot it answers for
+			std::vector<std::string> paths;
 
 			for(const auto* rom : _roms)
 			{
-				auto path = baseLib::filesystem::getPath(rom->path);
+				if(std::find(paths.begin(), paths.end(), rom->path) == paths.end())
+					paths.push_back(rom->path);
+			}
 
-				const auto text = path == folder ? baseLib::filesystem::getFilenameWithoutPath(rom->path) : rom->path;
+			std::string rml;
+			std::string folder;
+			bool first = true;
 
-				folder = std::move(path);
+			for(const auto& path : paths)
+			{
+				auto dir = folderOf(path);
 
-				rml += "<div>" + Rml::StringUtilities::EncodeRml(text) + "</div>";
+				if(first || dir != folder)
+				{
+					if(!dir.empty())
+						rml += "<div class=\"emu88-rom-folder\">" + Rml::StringUtilities::EncodeRml(dir) + "</div>";
+
+					folder = std::move(dir);
+					first = false;
+				}
+
+				const auto name = baseLib::filesystem::getFilenameWithoutPath(path);
+
+				rml += "<div class=\"emu88-rom-file\">" + Rml::StringUtilities::EncodeRml(name) + "</div>";
 			}
 
 			return rml;
 		}
 
-		// The standardized filenames of what is not there. A dump under a name of its own counts
-		// too once its hash is known, which is why this is a hint rather than a shopping list
+		// The standardized filenames of what is not there, below whatever the board already has.
+		// A dump under a name of its own counts too once its hash is known, which is why this is
+		// a hint rather than a shopping list
 		std::string describeMissing(const emu88Lib::RomInventory& _inventory, const emu88Lib::RomDevice _device)
 		{
 			const auto missing = _inventory.missingFiles(_device);
@@ -106,15 +136,12 @@ namespace emu88JucePlugin
 			if(missing.empty())
 				return {};
 
-			constexpr size_t maxNames = 4;
+			// All of them, however many that is. The page scrolls, and a list that stops halfway
+			// leaves the user to work out elsewhere what the rest of it was
+			std::string text = "missing: ";
 
-			std::string text = "needs ";
-
-			for(size_t i = 0; i < missing.size() && i < maxNames; ++i)
+			for(size_t i = 0; i < missing.size(); ++i)
 				text += (i ? ", " : "") + std::string(missing[i]->filename);
-
-			if(missing.size() > maxNames)
-				text += " and " + std::to_string(missing.size() - maxNames) + " more";
 
 			return "<div class=\"emu88-rom-need\">" + Rml::StringUtilities::EncodeRml(text) + "</div>";
 		}

@@ -58,7 +58,31 @@
 .emu88-rom-partial { color: #e0b64c; }
 .emu88-rom-bad { color: #e08080; }
 
+/* Every line in the Files column is a line of its own: a div is inline in RmlUi unless a rule
+ * says otherwise, and the names ran into one another without this. */
+.emu88-rom-folder, .emu88-rom-file, .emu88-rom-need {
+	display: block;
+}
+
+/* The folder heads the names it holds and is dimmed, being the same for all of them and only
+ * there to say where the board is reading from. It leads the cell more often than not, and a
+ * gap above it there would drop the whole column below the two next to it. */
+.emu88-rom-folder {
+	color: #999;
+	padding-top: 0.3em;
+}
+
+.emu88-rom-folder:first-child {
+	padding-top: 0;
+}
+
+/* Under the folder they are in, so the eye has the names in one column. */
+.emu88-rom-file {
+	padding-left: 0.9em;
+}
+
 /* What a board still wants, under whatever it already has. */
 .emu88-rom-need {
 	color: #c99;
+	padding-top: 0.3em;
 }
