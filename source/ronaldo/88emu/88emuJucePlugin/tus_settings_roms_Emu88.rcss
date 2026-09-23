@@ -18,7 +18,47 @@
 	word-break: break-word;
 }
 
-/* One line per subject, and the missing filenames wrap rather than run off the page. */
-.emu88-rom-boards {
-	white-space: pre-wrap;
+/* The board table. Two dozen rows, so it is a notch smaller than the page around it, and the
+ * file column takes what the other two leave: a path is the only thing here without a natural
+ * width. Column widths belong on the cells; a col element does not carry them in RmlUi. */
+.emu88-rom-table {
+	width: 100%;
+	font-size: 0.85em;
+	padding-top: 0.3em;
+	padding-bottom: 0.5em;
+}
+
+.emu88-rom-boardrow {
+	padding-top: 0.15em;
+	padding-bottom: 0.15em;
+}
+
+.emu88-rom-boardrow:nth-child(even) {
+	background-color: #0003;
+}
+
+.emu88-rom-boardhead {
+	color: #bbb;
+	font-style: italic;
+}
+
+/* The board that is playing. No bold: the dialog font has one face. The striping above is
+ * a class and a pseudo class, so this has to name the row class as well to beat it. */
+.emu88-rom-boardrow.emu88-rom-current {
+	background-color: #fff2;
+}
+
+/* Under 100% together, because settings-table asks for a gap between the columns on top of
+ * these widths. Whatever is left over goes nowhere the eye notices. */
+.emu88-col-board { width: 24%; padding-right: 0.5em; }
+.emu88-col-state { width: 17%; padding-right: 0.5em; }
+.emu88-col-files { width: 55%; word-break: break-word; }
+
+.emu88-rom-ok { color: #7ada7a; }
+.emu88-rom-partial { color: #e0b64c; }
+.emu88-rom-bad { color: #e08080; }
+
+/* What a board still wants, under whatever it already has. */
+.emu88-rom-need {
+	color: #c99;
 }

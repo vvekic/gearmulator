@@ -21,9 +21,24 @@
 		</div>
 		<settingsspacer1/>
 		<h3>Boards</h3>
-		<div id="lbBoards" class="emu88-rom-boards"/>
-		<settingsspacer1/>
-		<button id="btRescan" class="button" style="display: inline-block;">Rescan</button>
+		<div class="settings-hlayout emu88-rom-row">
+			<div id="lbBoards" class="emu88-rom-note emu88-rom-grow"/>
+			<button id="btRescan" class="button">Rescan</button>
+		</div>
+		<!-- One row per board, filled in by SettingsRoms::updateBoards(). The second row is the
+		template every board row is cloned from, and is taken out of the table on the way. -->
+		<table id="boardTable" class="settings-table emu88-rom-table">
+			<tr class="settings-tr emu88-rom-boardrow emu88-rom-boardhead">
+				<td class="emu88-col-board">Board</td>
+				<td class="emu88-col-state">ROMs</td>
+				<td class="emu88-col-files">Files</td>
+			</tr>
+			<tr id="boardRow" class="settings-tr emu88-rom-boardrow">
+				<td id="board" class="emu88-col-board"/>
+				<td id="state" class="emu88-col-state"/>
+				<td id="files" class="emu88-col-files"/>
+			</tr>
+		</table>
 		<settingsspacer1/>
 	</div>
 </body>

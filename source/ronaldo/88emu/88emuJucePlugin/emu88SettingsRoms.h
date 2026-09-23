@@ -2,6 +2,8 @@
 
 #include "jucePluginEditorLib/settingsPlugin.h"
 
+#include "RmlUi/Core/Types.h"
+
 #include <memory>
 #include <string>
 
@@ -22,6 +24,9 @@ namespace emu88JucePlugin
 	{
 	public:
 		explicit SettingsRoms(AudioPluginAudioProcessor& _processor);
+		// Out of line, because the row template below is an element and only the implementation
+		// knows what one is
+		~SettingsRoms() override;
 
 		std::string getCategoryName() const override { return "ROMs"; }
 		std::string getTemplateName() const override { return "tus_settings_roms_Emu88"; }
@@ -34,10 +39,15 @@ namespace emu88JucePlugin
 		void browse();
 		void applyPath(const std::string& _path);
 		void updateUi() const;
-		std::string describeBoards() const;
+		void updateBoards() const;
 
 		Rml::ElementFormControlInput* m_path = nullptr;
 		Rml::Element* m_boards = nullptr;
+
+		// The board table, and the row taken out of it at startup that every board's row is
+		// cloned from. The header row is the only child the table keeps between passes
+		Rml::Element* m_boardTable = nullptr;
+		Rml::ElementPtr m_boardRow = nullptr;
 
 		// The folder chooser and the deferred apply both outlive a dialog that is closed while they
 		// are in flight. They take a weak handle on this, which only this page keeps alive

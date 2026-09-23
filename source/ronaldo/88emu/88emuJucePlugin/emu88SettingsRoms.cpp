@@ -3,6 +3,8 @@
 #include "emu88Editor.h"
 #include "emu88PluginProcessor.h"
 
+#include "88lib/deviceModel.h"
+#include "88lib/rom/romRegistry.h"
 #include "88lib/rom/romloader.h"
 
 #include "baseLib/filesystem.h"
@@ -19,7 +21,10 @@
 #include "RmlUi/Core/Event.h"
 #include "RmlUi/Core/StringUtilities.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace emu88JucePlugin
 {
@@ -35,16 +40,104 @@ namespace emu88JucePlugin
 			baseLib::filesystem::createDirectory(_folder);
 			juce::File(juce::String::fromUTF8(_folder.c_str())).revealToUser();
 		}
+
+		// The CM-64 is a CM-32L and a CM-32P in one case and has no ROM rows of its own, so
+		// everything asked about it is asked of its two halves
+		std::vector<emu88Lib::RomDevice> halvesOf(const emu88Lib::RomDevice _device)
+		{
+			if(_device == emu88Lib::RomDevice::Cm64)
+				return {emu88Lib::RomDevice::Cm32l, emu88Lib::RomDevice::Cm32p};
+
+			return {_device};
+		}
+
+		// The images this board is reading, in the order the registry lists its slots. A board can
+		// be complete with fewer files than it has slots: the SC-88Pro takes its waves from an
+		// SC-8820 or SC-8850 dump, which is catalogued under the donor rather than here, and a
+		// combined dump can fill two slots at once
+		std::vector<const emu88Lib::FoundRom*> matchedRoms(const emu88Lib::RomInventory& _inventory, const emu88Lib::RomDevice _device)
+		{
+			std::vector<const emu88Lib::FoundRom*> result;
+
+			for(const auto device : halvesOf(_device))
+			{
+				for(const auto& spec : emu88Lib::g_romFileSpecs)
+				{
+					if(spec.device != device)
+						continue;
+
+					const auto* found = _inventory.find(device, spec.slot, spec.index);
+
+					if(found && std::find(result.begin(), result.end(), found) == result.end())
+						result.push_back(found);
+				}
+			}
+
+			return result;
+		}
+
+		// One line per image. The folder is only on the line that is the first to be in it: a
+		// board's dumps sit together, and repeating the folder would leave no room for the names
+		std::string describeFiles(const std::vector<const emu88Lib::FoundRom*>& _roms)
+		{
+			std::string rml;
+			std::string folder;
+
+			for(const auto* rom : _roms)
+			{
+				auto path = baseLib::filesystem::getPath(rom->path);
+
+				const auto text = path == folder ? baseLib::filesystem::getFilenameWithoutPath(rom->path) : rom->path;
+
+				folder = std::move(path);
+
+				rml += "<div>" + Rml::StringUtilities::EncodeRml(text) + "</div>";
+			}
+
+			return rml;
+		}
+
+		// The standardized filenames of what is not there. A dump under a name of its own counts
+		// too once its hash is known, which is why this is a hint rather than a shopping list
+		std::string describeMissing(const emu88Lib::RomInventory& _inventory, const emu88Lib::RomDevice _device)
+		{
+			const auto missing = _inventory.missingFiles(_device);
+
+			if(missing.empty())
+				return {};
+
+			constexpr size_t maxNames = 4;
+
+			std::string text = "needs ";
+
+			for(size_t i = 0; i < missing.size() && i < maxNames; ++i)
+				text += (i ? ", " : "") + std::string(missing[i]->filename);
+
+			if(missing.size() > maxNames)
+				text += " and " + std::to_string(missing.size() - maxNames) + " more";
+
+			return "<div class=\"emu88-rom-need\">" + Rml::StringUtilities::EncodeRml(text) + "</div>";
+		}
 	}
 
 	SettingsRoms::SettingsRoms(AudioPluginAudioProcessor& _processor) : SettingsPlugin(_processor)
 	{
 	}
 
+	SettingsRoms::~SettingsRoms() = default;
+
 	void SettingsRoms::createUi(Rml::Element* _root)
 	{
 		m_path = juceRmlUi::helper::findChildT<Rml::ElementFormControlInput>(_root, "romPath", false);
 		m_boards = juceRmlUi::helper::findChild(_root, "lbBoards", false);
+
+		// The template row is taken out of the table, leaving the header row behind, and is what
+		// every board's row is cloned from
+		if(auto* row = juceRmlUi::helper::findChild(_root, "boardRow", false))
+		{
+			m_boardTable = row->GetParentNode();
+			m_boardRow = m_boardTable->RemoveChild(row);
+		}
 
 		if(auto* defaultFolder = juceRmlUi::helper::findChild(_root, "lbDefaultFolder", false))
 			defaultFolder->SetInnerRML(Rml::StringUtilities::EncodeRml(m_processor.getPublicRomFolder()));
@@ -166,51 +259,60 @@ namespace emu88JucePlugin
 		if(m_path)
 			m_path->SetValue(processor().getRomSearchPath());
 
-		if(m_boards)
-			m_boards->SetInnerRML(Rml::StringUtilities::EncodeRml(describeBoards()));
+		updateBoards();
 
 		rml->enqueueUpdate();
 	}
 
-	std::string SettingsRoms::describeBoards() const
+	void SettingsRoms::updateBoards() const
 	{
+		if(!m_boardTable || !m_boardRow)
+			return;
+
 		const auto inventory = emu88Lib::RomLoader::scan();
+		const auto current = processor().getDeviceModel();
+
+		// Everything below the header row is what the last pass left there
+		while(m_boardTable->GetNumChildren() > 1)
+			m_boardTable->RemoveChild(m_boardTable->GetChild(1));
 
 		uint32_t complete = 0;
 
 		for(const auto model : emu88Lib::g_deviceMenuOrder)
 		{
-			if(inventory.isComplete(emu88Lib::RomLoader::toRomDevice(model)))
+			const auto device = emu88Lib::RomLoader::toRomDevice(model);
+			const auto roms = matchedRoms(inventory, device);
+			const auto isComplete = inventory.isComplete(device);
+
+			if(isComplete)
 				++complete;
+
+			auto* row = m_boardTable->AppendChild(m_boardRow->Clone());
+
+			row->SetClass("emu88-rom-current", model == current);
+
+			if(auto* cell = juceRmlUi::helper::findChild(row, "board", false))
+				cell->SetInnerRML(Rml::StringUtilities::EncodeRml(emu88Lib::getDeviceProfile(model).displayName));
+
+			if(auto* cell = juceRmlUi::helper::findChild(row, "state", false))
+			{
+				// A board with some of its dumps is worth telling apart from one with none: the
+				// first is a set to finish, the second is a board the user may never have wanted
+				cell->SetInnerRML(isComplete ? "Found" : roms.empty() ? "ROM missing" : "Incomplete");
+				cell->SetClass("emu88-rom-ok", isComplete);
+				cell->SetClass("emu88-rom-partial", !isComplete && !roms.empty());
+				cell->SetClass("emu88-rom-bad", !isComplete && roms.empty());
+			}
+
+			if(auto* cell = juceRmlUi::helper::findChild(row, "files", false))
+				cell->SetInnerRML(describeFiles(roms) + describeMissing(inventory, device));
 		}
 
-		auto text = std::to_string(complete) + " of " + std::to_string(emu88Lib::g_deviceMenuOrder.size()) +
-			" boards have a complete ROM set.\n";
-
-		const auto model = processor().getDeviceModel();
-		const auto device = emu88Lib::RomLoader::toRomDevice(model);
-		const std::string name = emu88Lib::getDeviceProfile(model).displayName;
-
-		if(inventory.isComplete(device))
-			return text + name + ": complete.";
-
-		const auto missing = inventory.missingFiles(device);
-
-		if(missing.empty())
-			return text + name + ": incomplete.";
-
-		// The standardized filenames of what is not there. A dump under a name of its own counts
-		// too once its hash is known, which is why this is a hint rather than a shopping list
-		text += name + ": missing ";
-
-		constexpr size_t maxNames = 5;
-
-		for(size_t i = 0; i < missing.size() && i < maxNames; ++i)
-			text += (i ? ", " : "") + std::string(missing[i]->filename);
-
-		if(missing.size() > maxNames)
-			text += " and " + std::to_string(missing.size() - maxNames) + " more";
-
-		return text + '.';
+		if(m_boards)
+		{
+			m_boards->SetInnerRML(Rml::StringUtilities::EncodeRml(
+				std::to_string(complete) + " of " + std::to_string(emu88Lib::g_deviceMenuOrder.size()) +
+				" boards have a complete ROM set. The one in use is highlighted."));
+		}
 	}
 }
