@@ -1,5 +1,12 @@
 Release Notes
 
+2.2.25.1:
+
+88emu:
+
+- [Imp] Fork build to exercise the Release CI workflow on the emu88-plugin
+        branch. Not an official release.
+
 2.2.26:
 
 88emuPlayer:
