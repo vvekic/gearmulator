@@ -1,0 +1,126 @@
+name: Emu88 Headless CLAP
+
+# The per-device CLAP plugins without an editor (source/ronaldo/88emu/88emuClap), and nothing else:
+# JUCE and every other product are switched off.
+#
+# - a push to emu88-clap, the daily upstream merge of emu88-clap-sync.yml included, builds them and
+#   replaces the emu88-clap-latest pre-release with this build
+# - a pushed tag emu88-clap-<version> builds them and publishes a release of that tag
+# - Run workflow only builds them, the packages are kept as workflow artifacts
+
+on:
+  push:
+    branches: [ emu88-clap ]
+    tags: [ 'emu88-clap-*', '!emu88-clap-latest' ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            generator: ""
+          # Xcode, as the release build: it decides the minimum macOS version, see CMakeLists.txt
+          - os: macos-14
+            generator: "-G Xcode"
+          - os: windows-2022
+            generator: ""
+
+    steps:
+    # portmidi is configured even though nothing here builds it, and it wants ALSA on Linux
+    - name: Install Dependencies
+      if: runner.os == 'Linux'
+      run: sudo apt update && sudo apt install -y libasound2-dev
+
+    # The CLAP headers are a submodule of clap-juce-extensions, hence recursive
+    - uses: actions/checkout@v4
+      with:
+        submodules: "recursive"
+
+    - name: Configure CMake
+      run: >
+        cmake -S . -B build ${{ matrix.generator }}
+        -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        -Dgearmulator_BUILD_JUCEPLUGIN=OFF
+        -Dgearmulator_BUILD_88EMU_CLAP=ON
+        -Dgearmulator_SYNTH_88EMU=ON
+        -Dgearmulator_SYNTH_OSIRUS=OFF
+        -Dgearmulator_SYNTH_OSTIRUS=OFF
+        -Dgearmulator_SYNTH_VAVRA=OFF
+        -Dgearmulator_SYNTH_XENIA=OFF
+        -Dgearmulator_SYNTH_NODALRED2X=OFF
+        -Dgearmulator_SYNTH_JE8086=OFF
+        -Dgearmulator_COMPONENT_DSPBRIDGE=OFF
+
+    - name: Build
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target 88emuClap_All --parallel 4
+
+    # Only this component: the others that are configured have not been built
+    - name: Pack
+      working-directory: build
+      run: cpack -G ZIP -C ${{ env.BUILD_TYPE }} -D CPACK_COMPONENTS_ALL=Emu88Headless-CLAP
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: emu88-headless-clap-${{ runner.os }}
+        path: build/*.zip
+        if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: emu88-headless-clap-*
+        merge-multiple: true
+        path: packages
+
+    - name: Release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        cat > notes.md <<EOF
+        A CLAP instrument for every 88emu device, without an editor: Emu88-<device>.clap.
+
+        Set the environment variable EMU88_ROM_PATH to the folder the ROMs are in, subfolders included,
+        before starting the host. A plugin whose ROMs are missing does not load and says which ones it
+        needs in the host's log. On macOS a host started from the Finder does not see variables set in
+        a shell: use \`launchctl setenv EMU88_ROM_PATH /path/to/roms\` and restart the host.
+
+        Built from ${GITHUB_SHA}.
+        EOF
+
+        if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          # A re-run replaces the release, the tag stays where it was pushed
+          gh release delete "$GITHUB_REF_NAME" --yes || true
+          gh release create "$GITHUB_REF_NAME" packages/*.zip --verify-tag \
+            --title "Emu88 Headless CLAP ${GITHUB_REF_NAME#emu88-clap-}" --notes-file notes.md
+        else
+          # The rolling release moves to this commit. Its file names carry the version, so the old
+          # release goes rather than being added to. The tag it makes does not start this workflow
+          # again: tags made with the workflow's own token never start one, and it is excluded above.
+          gh release delete emu88-clap-latest --cleanup-tag --yes || true
+          gh release create emu88-clap-latest packages/*.zip --target "$GITHUB_SHA" --prerelease \
+            --title "Emu88 Headless CLAP, latest build" --notes-file notes.md
+        fi
