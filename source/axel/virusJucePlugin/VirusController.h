@@ -186,6 +186,8 @@ namespace virus
 
 		std::vector<uint8_t> getPartsForMidiChannel(uint8_t _channel) override;
 
+		bool getLedBrightness(const std::string& _name, float& _brightness) const override;
+
 		// audio thread: the host tempo in units of the Clock Tempo parameter, which follows it on the message thread
 		void setHostClockTempo(int _value);
 
@@ -212,8 +214,14 @@ namespace virus
         virusLib::BankNumber m_currentBank[16]{};
         uint8_t m_currentProgram[16]{};
         PresetSource m_currentPresetSource[16]{PresetSource::Unknown};
+		// per part, the edit buffer singles still to come that answer onStateLoaded. They carry a restored state, which
+		// the values that locked parameters had before must not overwrite
+		uint8_t m_pendingStateSyncs[16]{};
 		baseLib::EventListener<uint32_t> m_onRomChanged;
         virusLib::FrontpanelState m_frontpanelState;
+		// LFO 1-3 and the logo for skins, linear, negative for an LED this model does not drive. Written with the
+		// front panel state, read from any thread
+		std::array<std::atomic<float>, 4> m_ledBrightness{{{-1.0f}, {-1.0f}, {-1.0f}, {-1.0f}}};
         std::atomic<bool> m_multiMode = false;
 
 		pluginLib::Parameter* m_clockTempo = nullptr;

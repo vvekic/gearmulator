@@ -646,6 +646,94 @@ namespace
 		_pm.send = [&_device](const synthLib::SMidiEvent& _ev) { _device.send(_ev); };
 	}
 
+	void testContentSearch()
+	{
+		std::cout << "Testing a search by patch content while patches are added..." << std::endl;
+
+		const auto root = createTestDir();
+
+		{
+			TestPatchManager pm(root.getChildFile("settings"), {"Bass", "Lead", "Pad"});
+			TEST_ASSERT(pm.waitIdle());
+
+			const auto rom = pm.getDataSource(TestPatchManager::romBank());
+
+			SearchRequest request;
+			request.patch = pm.findPatch(rom, "Lead");
+			const auto handle = pm.search(std::move(request));
+			TEST_ASSERT(pm.waitIdle());
+			TEST_ASSERT(searchResultNames(pm, handle) == std::set<std::string>{"Lead"});
+
+			// patches added to the database, as when a bank is refreshed, only join it if they have that content
+			const auto bank = createUserBank(pm, "My Bank");
+			TEST_ASSERT(bank);
+			pm.copyPatchesTo(bank, {pm.findPatch(rom, "Bass"), pm.findPatch(rom, "Lead"), pm.findPatch(rom, "Pad")});
+			TEST_ASSERT(pm.waitIdle());
+			TEST_ASSERT(bank->patches.size() == 3);
+
+			const auto s = pm.getSearch(handle);
+			TEST_ASSERT(s);
+			std::shared_lock lock(s->resultsMutex);
+			TEST_ASSERT(s->results.size() == 2);
+			TEST_ASSERT(s->results.count(pm.findPatch(rom, "Lead")) == 1);
+			TEST_ASSERT(s->results.count(pm.findPatch(bank, "Lead")) == 1);
+		}
+
+		root.deleteRecursively();
+
+		std::cout << "  content search tests passed" << std::endl;
+	}
+
+	void testDeviceProgramChanged()
+	{
+		std::cout << "Testing the selection following what the device plays..." << std::endl;
+
+		const auto root = createTestDir();
+
+		{
+			TestPatchManager pm(root.getChildFile("settings"), {"Bass", "Lead", "Pad"});
+			TEST_ASSERT(pm.waitIdle());
+
+			const auto rom = pm.getDataSource(TestPatchManager::romBank());
+
+			// the device got a patch from elsewhere, a host restoring a state or a program change on the hardware
+			pm.editBuffers[1] = patchDump("Lead");
+			pm.onProgramChanged(1);
+			TEST_ASSERT(pm.waitIdle());
+			TEST_ASSERT(pm.getState().getPatch(1) == PatchKey(*pm.findPatch(rom, "Lead")));
+
+			// following the device does not send anything back to it
+			TEST_ASSERT(pm.activated.empty());
+
+			// a patch that is in no data source, an edited one for example, leaves the selection alone
+			pm.editBuffers[1] = patchDump("Edited");
+			pm.onProgramChanged(1);
+			TEST_ASSERT(pm.waitIdle());
+			TEST_ASSERT(pm.getState().getPatch(1) == PatchKey(*pm.findPatch(rom, "Lead")));
+
+			// the device plays the copy in a user bank that the user selected: the selection stays on that copy,
+			// it does not jump to the ROM patch with the same data
+			const auto bank = createUserBank(pm, "My Bank");
+			TEST_ASSERT(bank);
+			pm.copyPatchesTo(bank, {pm.findPatch(rom, "Pad")});
+			TEST_ASSERT(pm.waitIdle());
+			const auto copy = pm.findPatch(bank, "Pad");
+			TEST_ASSERT(copy);
+			TEST_ASSERT(pm.setSelectedPatch(1, copy, searchDataSource(pm, bank)));
+			pm.activated.clear();
+
+			pm.editBuffers[1] = patchDump("Pad");
+			pm.onProgramChanged(1);
+			TEST_ASSERT(pm.waitIdle());
+			TEST_ASSERT(pm.getState().getPatch(1) == PatchKey(*copy));
+			TEST_ASSERT(pm.activated.empty());
+		}
+
+		root.deleteRecursively();
+
+		std::cout << "  device program change tests passed" << std::endl;
+	}
+
 	void testProgramChanges()
 	{
 		std::cout << "Testing program changes that load patches..." << std::endl;
@@ -1025,6 +1113,8 @@ void testPatchManager()
 	testUserBanks();
 	testTags();
 	testSelection();
+	testContentSearch();
+	testDeviceProgramChanged();
 	testProgramChanges();
 	testShutdown();
 	testRomMidiBanks();

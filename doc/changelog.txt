@@ -11,13 +11,52 @@ Framework:
 - [Imp] BUG-10320 Skins can show level meters: audio.getOutputLevel returns the
         peak and RMS level of every output channel to Lua.
 
+- [Imp] BUG-10341 Skins can read the current pitch bend and channel pressure of
+        every MIDI channel in Lua: midi.getPitchBend and getChannelPressure.
+
+- [Imp] The patch manager shows the patches that come with a release without
+        being told where they are: a folder named "patches" in the plugin's
+        folder in Documents/The Usual Suspects is added as a data source.
+
+- [Imp] BUG-10195 Clicking a slider's track moves the slider there again, a drag
+        continues from there. Dragging the slider's knob, or holding Shift, Ctrl
+        or Alt while clicking, still changes the value from where it is.
+
 - [Fix] BUG-10514 Linux: a plugin could crash while it was loaded when its ROM
         was installed, for example the VST3 versions of Nodal Red 2x, Vavra and
         Xenia.
 
+- [Fix] BUG-10518 The standalone versions crashed right after they were started,
+        on Windows without showing a window.
+
+- [Fix] BUG-10530 Changing the skin could crash the plugin, more often with the
+        RmlUi debugger turned on.
+
 - [Fix] EMU-277 "Reboot Device" in the MIDI settings now finds a ROM that was
         copied into the ROM folder after the plugin was loaded, the plugin no
         longer has to be loaded again. The selected ROM stays selected.
+
+- [Fix] #278 Closing the editor while the Patch Manager was still searching left
+        that search registered for good. Every later bank load or patch change
+        had to scan it, so the CPU load grew a bit with every such close.
+
+- [Fix] BUG-10382 The value tooltip also appeared for buttons, often away from
+        the button and over other controls. It is shown for knobs and sliders
+        only again.
+
+- [Fix] BUG-10219 The patch name could not be renamed with a double click while
+        the name of a parameter was shown over it, for example in the OsTIrus
+        skin right after a parameter was changed.
+
+- [Fix] BUG-10441 With the software renderer, an element with a CSS filter was
+        not drawn at all, for example a big rotary of a skin that brightens it.
+
+- [Fix] BUG-10441 A skin that uses CSS filters no longer floods the log with
+        "Could not compile filter" on renderers without filter support.
+
+- [Fix] BUG-10180 Lock Regions are saved with the project and locked again when
+        it is loaded. A project saved by an earlier version loads with nothing
+        locked, as before.
 
 Osirus/OsTIrus:
 
@@ -28,6 +67,9 @@ Osirus/OsTIrus:
         on a DSPBridge server. Arp>Matrix on the Virus TI still follows MIDI
         clock.
 
+- [Imp] BUG-10341 Skins can read the front panel LEDs in Lua: leds.get returns
+        the brightness of the LFO LEDs and, on the Virus TI, of the logo.
+
 - [Fix] #285 In single mode, MIDI Learn mappings with automatic part selection
         and the MIDI Learn indicators only worked on MIDI channel 1. They now
         follow the MIDI channel set in the Virus' global settings.
@@ -37,7 +79,25 @@ Osirus/OsTIrus:
         receiver applied them to part 1. They now go out on the channel of the
         part, as the control changes (page A) do.
 
+- [Fix] #264 When the host loads a project or a preset of its own, for example
+        an NKS preset in Komplete Kontrol, the Patch Manager now selects the
+        patch that the plugin plays. It kept the patch that was selected before,
+        or selected a wrong one.
+
+- [Fix] BUG-10183 A part that was switched off in multi mode played again when
+        the project was loaded or the play mode was changed. Its Note Steal
+        setting and its MIDI Volume, Hold Pedal, Keyb To Midi and Program
+        Change switches went back the same way.
+
+- [Fix] BUG-10180 With regions locked, loading a project or a host preset kept
+        values from before the load in the parts that had locked regions.
+
 Osirus:
+
+- [Imp] BUG-10183 Galaxpel skin: every part on the Multi page has Mute and Solo
+        buttons. Mute switches the part off, as the Enable button did that it
+        replaces. Solo plays only the soloed parts, parts muted by hand stay
+        muted when the solo ends. A solo is saved with the project.
 
 - [Fix] #49 The Arp Clock selection showed the values of the LFO clock: it
         offered "Off", which the arpeggiator does not have, and labelled every
@@ -59,6 +119,12 @@ OsTIrus:
         the LFO amounts or Panorama, light their value ring from the centre to
         either side instead of from the left end.
 
+- [Imp] BUG-10519 EQ, Arpeggiator, Delay and Reverb Enable, the global
+        switches, are host parameters now, for automation and for skins. They
+        showed "Disabled" while they were on, and a project did not save them.
+        As in the firmware, switching Delay or Reverb off takes effect with the
+        next patch, switching on at once.
+
 Vavra:
 
 - [Fix] With voice expansion turned on, playback could crash the plugin when the
@@ -74,6 +140,35 @@ JE8086:
         on the JP-8000. With ALL, the factory setting, that is every channel;
         set a single channel to play the Upper and Lower parts on their own MIDI
         channels.
+
+- [Fix] BUG-10512 Switching the ROM from the JP-8080 back to the JP-8000 set the
+        Remote Ctrl CH of the JP-8000 to OFF, so Split and the arpeggiator no
+        longer played via MIDI until the plugin was loaded again. A ROM switch
+        no longer hands the system settings of one model to the other, each
+        model keeps its own and gets them back when it is selected again, also
+        in a saved project.
+
+- [Fix] BUG-10512 The plugin set the Remote KBD CH of the JP-8080 to 5, so Split
+        and the arpeggiator played only from MIDI channel 5. It stays at ALL,
+        the factory setting, now, and a channel chosen in the editor is no
+        longer reset when a project is loaded. Projects saved with channel 5
+        get ALL.
+
+- [Fix] BUG-10528 A JP-8080 performance loaded from a file, such as a bulk dump
+        of the hardware, left Unison, Unison Detune, Patch Gain, Voice Modulator
+        Send and External Trigger of its patches as they were, and set three
+        Control depths of the amp (LFO 1, LFO 2, Attack) to wrong values
+        instead.
+
+- [Fix] BUG-10528 INC and DEC did nothing after the plugin was loaded, until a
+        patch was picked in the browser. With nothing picked there, they now
+        press INC and DEC of the synth (VALUE UP and DOWN of the JP-8000), and
+        the editor shows what the synth plays afterwards.
+
+- [Fix] BUG-10208 Clicking quickly through performances or patches sent every one
+        of them to the synth at MIDI speed, so it followed seconds later and its
+        display and PERFORM/PATCH SELECT did not react meanwhile. A performance
+        or patch that a newer click replaces is no longer sent.
 
 NodalRed2x:
 
@@ -123,6 +218,19 @@ Plugin Manager:
         into our roms folder. It is now left alone: it does not show as
         installed, an install into the same folder stops and says so, and an
         uninstall does not remove it.
+
+- [Imp] BUG-10526 macOS: plugins are installed into the system-wide folders in
+        /Library/Audio/Plug-Ins by default, where the plugins of other makers
+        are, rather than into the user's own in ~/Library. Plugins installed
+        there before are still found and are upgraded where they are.
+
+- [Fix] BUG-10507 Linux: the rpm package could not be installed on distributions
+        whose libcurl does not version its symbols, such as Fedora: it required
+        libcurl.so.4(CURL_OPENSSL_4).
+
+- [Fix] BUG-10507 A download that could not be written, to a full disk for
+        example, was reported as a damaged archive. It now says that it could
+        not be written, and why.
 
 88emuPlayer:
 

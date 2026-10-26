@@ -548,8 +548,21 @@ namespace jeJucePlugin
 			case jeLib::SystemParameter::KeyboardShift:
 				sendChange(2);	// shift 0
 				break;
-			case jeLib::SystemParameter::RemoteKeyboardChannel:
-				sendChange(4);	// rack only
+			case jeLib::SystemParameter::RemoteKeyboardChannel:	// rack only
+				{
+					auto v = value;
+
+					// up to 2.2.27 the plugin set channel 5 here, which kept every other channel away from REMOTE KBD
+					// IN (BUG-10512). ALL, the factory setting, lets any channel play Split and the arpeggiator
+					if (v == 4)
+					{
+						v = 16;
+						sendChange(v);
+					}
+
+					if (auto* param = getParameter("RemoteKeyboardChannel", 0))
+						param->setUnnormalizedValueNotifyingHost(v, pluginLib::Parameter::Origin::Ui);
+				}
 				break;
 			default:;
 			}
@@ -610,7 +623,9 @@ namespace jeJucePlugin
 			}
 			else
 			{
-				const auto localAddr = static_cast<uint32_t>(addr) & static_cast<uint32_t>(jeLib::PerformanceData::BlockMask);
+				// the whole offset in the performance: a rack patch is dumped in two messages, the second one starts in
+				// the middle of a block (41 72, 43 72)
+				const auto localAddr = static_cast<uint32_t>(addr) & static_cast<uint32_t>(jeLib::UserPerformanceArea::BlockMask);
 
 				const auto a = 
 					static_cast<uint32_t>(jeLib::AddressArea::PerformanceTemp) |
