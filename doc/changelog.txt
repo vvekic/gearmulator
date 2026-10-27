@@ -54,9 +54,31 @@ Framework:
 - [Fix] BUG-10441 A skin that uses CSS filters no longer floods the log with
         "Could not compile filter" on renderers without filter support.
 
+- [Fix] Without a configured refresh rate limit, the OpenGL renderer draws the
+        user interface at 30 Hz again, 60 Hz on NVIDIA and AMD graphics and on
+        macOS, instead of as often as the display refreshes.
+
 - [Fix] BUG-10180 Lock Regions are saved with the project and locked again when
         it is loaded. A project saved by an earlier version loads with nothing
         locked, as before.
+
+- [Fix] The MIDI ports chosen in the settings open again by themselves when
+        their device is plugged in again or comes back after a USB hiccup. A
+        port whose device is not connected stays selected, also in the project,
+        and opens once the device is there.
+
+- [Fix] Windows: a MIDI output whose device was not connected sent everything
+        to the Microsoft GS Wavetable Synth instead.
+
+- [Fix] A MIDI input that was selected once stayed open until the plugin was
+        unloaded, also after another one was selected. On Windows, selecting
+        it again after its device was plugged in again received nothing.
+
+- [Imp] DSPBridge: The interface between the plugins and DSPBridgeServer changed
+        again in this version, and with it the bridge protocol version: update
+        DSPBridgeServer together with the plugins. A server of 2.2.27 or older
+        does not work with the plugins of this version, and this server does
+        not work with plugins of 2.2.27 or older.
 
 Osirus/OsTIrus:
 
@@ -92,6 +114,18 @@ Osirus/OsTIrus:
 - [Fix] BUG-10180 With regions locked, loading a project or a host preset kept
         values from before the load in the parts that had locked regions.
 
+- [Fix] Singles and multis exported from the Patch Manager, to a file or by
+        dragging them out, had wrong checksums, so a hardware Virus ignored
+        them.
+
+- [Fix] EMU-294 The plugin sent what its editor reads from the emulator to the
+        MIDI output selected in the MIDI settings as well, for example all RAM
+        banks and the global settings whenever the plugin or a project was
+        loaded. A Virus connected there stored them over its own. These answers
+        now stay inside the plugin. What the emulator plays, arpeggiator notes
+        for example, still goes to the MIDI output, and a request that arrives
+        at the MIDI input is still answered there.
+
 Osirus:
 
 - [Imp] BUG-10183 Galaxpel skin: every part on the Multi page has Mute and Solo
@@ -103,6 +137,11 @@ Osirus:
         offered "Off", which the arpeggiator does not have, and labelled every
         setting with a different note value than the one it plays, 1/16 as
         1/8 for example. It now shows 1/128 to 1/2 as on the hardware.
+
+- [Fix] BUG-10184 The Patch Manager showed the ROM Arrangements with
+        "[Bank 4294901761]", a MIDI bank number that no bank select reaches.
+        They have no MIDI bank number now, one can be assigned to load them by
+        program change.
 
 OsTIrus:
 
@@ -124,6 +163,13 @@ OsTIrus:
         showed "Disabled" while they were on, and a project did not save them.
         As in the firmware, switching Delay or Reverb off takes effect with the
         next patch, switching on at once.
+
+Vavra/Xenia:
+
+- [Fix] EMU-294 The sounds the editor reads from the emulator went to the MIDI
+        output selected in the MIDI settings as well, and Vavra sent its sound
+        there after a program change. They now stay inside the plugin, a
+        request that arrives at the MIDI input is still answered there.
 
 Vavra:
 
@@ -170,10 +216,23 @@ JE8086:
         display and PERFORM/PATCH SELECT did not react meanwhile. A performance
         or patch that a newer click replaces is no longer sent.
 
+- [Fix] EMU-294 The system settings and the performance the editor reads from
+        the emulator went to the MIDI output selected in the MIDI settings as
+        well, whenever the plugin or a project was loaded or a patch was sent.
+        A JP-8000 or JP-8080 connected there took them over. They now stay
+        inside the plugin, a request that arrives at the MIDI input is still
+        answered there.
+
 NodalRed2x:
 
 - [Fix] BUG-10509 With enough voices playing, the voices of the second DSP cut in
         and out on the left channel.
+
+- [Fix] EMU-294 The four slots the editor reads from the emulator went to the
+        MIDI output selected in the MIDI settings as well, whenever the plugin
+        or a project was loaded or a patch was sent. They now stay inside the
+        plugin, a request that arrives at the MIDI input is still answered
+        there.
 
 Plugin Manager:
 

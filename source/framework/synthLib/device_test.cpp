@@ -5,6 +5,7 @@
 // on at least one device turned every "play" into a Program Change.
 #include "consoleTools.h"
 #include "device.h"
+#include "midiRoutingMatrix.h"
 #include "plugin.h"
 #include "baseLib/os.h"
 
@@ -90,6 +91,80 @@ namespace
 			const uint8_t cells[] = {'H', 'i'};
 			fp::sendLcdText(_midiOut, 2, 1, cells);
 		}
+	};
+
+	// Answers every SysEx right away, as a device does that keeps what is asked for in C++, and plays a note of its own
+	class ReplyingDevice final : public TestDevice
+	{
+	protected:
+		bool sendMidi(const SMidiEvent& _ev, std::vector<SMidiEvent>& _response) override
+		{
+			if (!_ev.sysex.empty())
+				_response.emplace_back(MidiEventSource::Device).sysex = {0xf0, 0x01, 0xf7};
+			return true;
+		}
+		void readMidiOut(std::vector<SMidiEvent>& _midiOut) override
+		{
+			_midiOut.emplace_back(MidiEventSource::Device, 0x90, 0x40, 0x7f);
+		}
+	};
+
+	// Its firmware answers F0 11 <n> F7 a block later with F0 12 <n> F7, and F0 13 <n> F7 with F0 14 <n> 00 F7 and
+	// F0 14 <n> 01 F7 one block apart. F0 15 <n> F7 is answered in C++ right away, with what the firmware sends for
+	// F0 11 <n> F7
+	class FirmwareDevice final : public TestDevice
+	{
+	public:
+		// sent with the next block, asked for or not
+		std::vector<SysexBuffer> m_firmwareOut;
+
+	protected:
+		bool sendMidi(const SMidiEvent& _ev, std::vector<SMidiEvent>& _response) override
+		{
+			const auto& s = _ev.sysex;
+			if (s.size() != 4)
+				return true;
+
+			const auto n = s[2];
+
+			switch (s[1])
+			{
+			case 0x11:
+				expectReply(_ev.source, expectBytes({{1, 0x12}, {2, n}}));
+				m_next.push_back({0xf0, 0x12, n, 0xf7});
+				break;
+			case 0x13:
+				expectReply(_ev.source, [n](const SMidiEvent& _e)
+				{
+					const auto& r = _e.sysex;
+					if (r.size() != 5 || r[1] != 0x14 || r[2] != n)
+						return ReplyMatch::None;
+					return r[3] ? ReplyMatch::Complete : ReplyMatch::Partial;
+				});
+				m_next.push_back({0xf0, 0x14, n, 0x00, 0xf7});
+				m_later.push_back({0xf0, 0x14, n, 0x01, 0xf7});
+				break;
+			case 0x15:
+				_response.emplace_back(MidiEventSource::Device).sysex = {0xf0, 0x12, n, 0xf7};
+				break;
+			default:;
+			}
+			return true;
+		}
+
+		void readMidiOut(std::vector<SMidiEvent>& _midiOut) override
+		{
+			for (auto& s : m_firmwareOut)
+				_midiOut.emplace_back(MidiEventSource::Device).sysex = std::move(s);
+
+			m_firmwareOut = std::move(m_next);
+			m_next = std::move(m_later);
+			m_later.clear();
+		}
+
+	private:
+		std::vector<SysexBuffer> m_next;
+		std::vector<SysexBuffer> m_later;
 	};
 
 	void expect(const bool _condition)
@@ -226,6 +301,143 @@ namespace
 
 		expect(!device.m_heardOutput);
 	}
+
+	// A device's reply goes back to whoever asked and to the editor. A Virus on the physical port stored both RAM banks
+	// that the editor had asked the emulator for. What the device plays goes wherever the routing sends it
+	void testRepliesGoBackToWhoAsked()
+	{
+		ReplyingDevice device;
+
+		auto request = [](const MidiEventSource _source)
+		{
+			SMidiEvent ev(_source);
+			ev.sysex = {0xf0, 0x02, 0xf7};
+			return ev;
+		};
+
+		std::vector<SMidiEvent> midiOut;
+		float buffer[8] = {};
+		float* const ptr = buffer;
+		const TAudioInputs in = {ptr, ptr, nullptr, nullptr};
+		const TAudioOutputs out = {ptr, ptr};
+
+		device.process(in, out, 8, {request(MidiEventSource::Editor), request(MidiEventSource::Physical)}, midiOut);
+
+		expect(midiOut.size() == 3);
+		const auto& editorReply = midiOut[0];
+		const auto& physicalReply = midiOut[1];
+		const auto& note = midiOut[2];
+
+		expect(editorReply.replyTo == MidiEventSource::Editor);
+		expect(physicalReply.replyTo == MidiEventSource::Physical);
+		expect(note.replyTo == MidiEventSource::Unknown);
+
+		MidiRoutingMatrix matrix;
+		matrix.setEnabled(MidiEventSource::Device, MidiEventSource::Host, MidiRoutingMatrix::EventType::All, true);
+
+		expect(matrix.enabled(editorReply, MidiEventSource::Editor));
+		expect(!matrix.enabled(editorReply, MidiEventSource::Physical));
+		expect(!matrix.enabled(editorReply, MidiEventSource::Host));
+
+		// a librarian on the physical port gets its answer, the editor sees it too
+		expect(matrix.enabled(physicalReply, MidiEventSource::Physical));
+		expect(matrix.enabled(physicalReply, MidiEventSource::Editor));
+		expect(!matrix.enabled(physicalReply, MidiEventSource::Host));
+
+		expect(matrix.enabled(note, MidiEventSource::Physical));
+		expect(matrix.enabled(note, MidiEventSource::Host));
+
+		// the routing still decides whether a reply may go there at all
+		matrix.setEnabled(MidiEventSource::Device, MidiEventSource::Physical, MidiRoutingMatrix::EventType::SysEx, false);
+		expect(!matrix.enabled(physicalReply, MidiEventSource::Physical));
+	}
+
+	// What a firmware answers later is a reply to whoever asked, like what a device answers in C++. A JP-8000 on the
+	// physical port got its system area written with the firmware's answer to the editor's RQ1
+	void testFirmwareRepliesGoBackToWhoAsked()
+	{
+		FirmwareDevice device;
+
+		std::vector<SMidiEvent> midiOut;
+		float buffer[4096] = {};
+		float* const ptr = buffer;
+		const TAudioInputs in = {ptr, ptr, nullptr, nullptr};
+		const TAudioOutputs out = {ptr, ptr};
+
+		auto process = [&](const std::vector<SMidiEvent>& _midiIn = {})
+		{
+			device.process(in, out, std::size(buffer), _midiIn, midiOut);
+		};
+
+		auto request = [](const MidiEventSource _source, const uint8_t _command, const uint8_t _n)
+		{
+			SMidiEvent ev(_source);
+			ev.sysex = {0xf0, _command, _n, 0xf7};
+			return ev;
+		};
+
+		auto find = [&](const std::initializer_list<uint8_t> _sysex) -> const SMidiEvent&
+		{
+			const auto it = std::find_if(midiOut.begin(), midiOut.end(), [&](const SMidiEvent& _e)
+			{
+				return std::equal(_e.sysex.begin(), _e.sysex.end(), _sysex.begin(), _sysex.end());
+			});
+			expect(it != midiOut.end());
+			return *it;
+		};
+
+		// the editor's request answered in C++ looks like the firmware's answer to the physical port's: it stays the
+		// editor's, and the firmware's answer is the physical port's
+		process({request(MidiEventSource::Editor, 0x11, 1), request(MidiEventSource::Physical, 0x11, 2),
+			request(MidiEventSource::Physical, 0x11, 4), request(MidiEventSource::Editor, 0x15, 4),
+			request(MidiEventSource::Editor, 0x13, 5)});
+
+		expect(midiOut.size() == 1);
+		expect(find({0xf0, 0x12, 4, 0xf7}).replyTo == MidiEventSource::Editor);
+
+		// asked for by nobody
+		device.m_firmwareOut.push_back({0xf0, 0x12, 3, 0xf7});
+
+		process();
+
+		expect(midiOut.size() == 5);
+		expect(find({0xf0, 0x12, 1, 0xf7}).replyTo == MidiEventSource::Editor);
+		expect(find({0xf0, 0x12, 2, 0xf7}).replyTo == MidiEventSource::Physical);
+		expect(find({0xf0, 0x12, 4, 0xf7}).replyTo == MidiEventSource::Physical);
+		expect(find({0xf0, 0x14, 5, 0x00, 0xf7}).replyTo == MidiEventSource::Editor);
+		expect(find({0xf0, 0x12, 3, 0xf7}).replyTo == MidiEventSource::Unknown);
+
+		MidiRoutingMatrix matrix;
+		expect(!matrix.enabled(find({0xf0, 0x12, 1, 0xf7}), MidiEventSource::Physical));
+		expect(matrix.enabled(find({0xf0, 0x12, 2, 0xf7}), MidiEventSource::Physical));
+		expect(matrix.enabled(find({0xf0, 0x12, 3, 0xf7}), MidiEventSource::Physical));
+
+		// a complete answer ends its request: the same dump again is nobody's
+		device.m_firmwareOut.push_back({0xf0, 0x12, 1, 0xf7});
+
+		process();
+
+		expect(midiOut.size() == 2);
+		expect(find({0xf0, 0x14, 5, 0x01, 0xf7}).replyTo == MidiEventSource::Editor);
+		expect(find({0xf0, 0x12, 1, 0xf7}).replyTo == MidiEventSource::Unknown);
+
+		// an answer that takes a while is still one, a request that nothing answers for a few seconds is forgotten
+		auto answerAfter = [&](const uint8_t _n, const float _seconds)
+		{
+			process({request(MidiEventSource::Editor, 0x11, _n)});
+			device.m_firmwareOut.clear();
+
+			for (size_t samples = 0; samples < static_cast<size_t>(_seconds * device.getSamplerate()); samples += std::size(buffer))
+				process();
+
+			device.m_firmwareOut.push_back({0xf0, 0x12, _n, 0xf7});
+			process();
+			return find({0xf0, 0x12, _n, 0xf7}).replyTo;
+		};
+
+		expect(answerAfter(6, 2.0f) == MidiEventSource::Editor);
+		expect(answerAfter(7, 4.0f) == MidiEventSource::Unknown);
+	}
 } // namespace
 
 int main()
@@ -237,5 +449,7 @@ int main()
 	testDeviceRunner();
 	testChunkedSysexReachesDeviceOnce();
 	testMissingInputDoesNotHearMissingOutput();
+	testRepliesGoBackToWhoAsked();
+	testFirmwareRepliesGoBackToWhoAsked();
 	return 0;
 }
