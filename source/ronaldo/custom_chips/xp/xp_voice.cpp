@@ -14,6 +14,13 @@ namespace xpLib
 
 		if (_voice.runtimeCache.runtimePhase == VoiceRuntimePhaseCache::preload)
 		{
+			// Measured on the SC-88 XP: a voice launched with a mute request does not preload (no live marker,
+			// the address stays) until the mute status is set, so with the mute reason masked it never starts.
+			if ((_voice.waveControl_0000 & (WaveControl::muteRequest | WaveControl::muteStatus)) == WaveControl::muteRequest)
+			{
+				_voice.runtimeCache.runtimePhase = VoiceRuntimePhaseCache::initialize;   // runs, producer idle
+				return {};
+			}
 			if ((_voice.waveControl_0000 & WaveControl::ldpcmFormat) != 0)
 				_voice.runtimeCache.waveSampleFormat = WaveSampleFormatCache::ldpcm;
 			else if ((_voice.waveControl_0000 & WaveControl::fceDpcmExponent0OrProducerLive) != 0)
@@ -141,7 +148,8 @@ namespace xpLib
 
 		const auto playbackCounter = (_voice.playbackStateConfig_1000 + 1) & 7;
 		_voice.playbackStateConfig_1000 = playbackRunning | (_voice.playbackStateConfig_1000 & 0x18) | playbackCounter;
-		if ((_voice.waveControl_0000 & (WaveControl::waveEngineHalt | WaveControl::producerBlocked)) != 0)
+		if ((_voice.waveControl_0000 & (WaveControl::waveEngineHalt | WaveControl::producerBlocked)) != 0 ||
+			(_voice.waveControl_0000 & (WaveControl::muteRequest | WaveControl::muteStatus)) == WaveControl::muteRequest)
 		{
 			if (playbackCounter == 6)
 			{
@@ -156,8 +164,9 @@ namespace xpLib
 		// RAM M sees three interpolation reads, at most four DPCM reads, then at most four producer writes.
 		const auto interpolatedSample = interpolateVoice(_voice, phase);
 		// The Q16 bits below readable 0x0e00 are ordered-dithered by the chip-global four-frame phase. The threshold
-		// order is 0,2,1,3 (two-bit reversal), applied to the sample-clock phase shifted by two.
-		const auto ditherPhase = static_cast<uint8_t>((m_state.sampleClock + 3) & 3);
+		// order is 0,2,1,3 (two-bit reversal) on the sample clock itself: measured frame-exact on the SC-88 XP
+		// against the reset-anchored clock (every other phase offset misses the fraction register).
+		const auto ditherPhase = static_cast<uint8_t>(m_state.sampleClock & 3);
 		const auto phaseIncrement =
 			(_voice.pitchIncrement_0d00 >> 2) + ((_voice.pitchIncrement_0d00 & 3) > reverseTwoBits(ditherPhase));
 		const auto nextPhase = phase + phaseIncrement;
