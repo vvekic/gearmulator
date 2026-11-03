@@ -105,10 +105,22 @@ Framework:
         the slash.
 
 - [Fix] macOS: while a window was resized, the user interface was squashed
-        for a moment.
+        for a moment. The frame at the new size now reaches the screen
+        together with the resize.
 
 - [Fix] A skin that changes its own size could show one frame cut off, or
         with an empty band, before the window followed.
+
+- [Fix] The link and lock icons of a parameter could be drawn away from
+        their control when the element around the control is not
+        positioned.
+
+- [Imp] A skin that is no longer part of the plugin, and is not in the
+        skins folder either, is replaced by the default skin without a
+        warning each time the editor opens.
+
+- [Imp] Settings: the option to enable advanced options is hidden when a
+        plugin has none.
 
 - [Imp] Skins: a dropdown with drag-step="N" steps through its entries while
         it is dragged, one entry per N dp, and a click still opens its menu.
