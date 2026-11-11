@@ -74,6 +74,11 @@ Framework:
         unloaded, also after another one was selected. On Windows, selecting
         it again after its device was plugged in again received nothing.
 
+- [Fix] BUG-10561 macOS: the plugins no longer export the symbols of JUCE and of
+        their other code, only their entry points. A host or another plugin
+        that is built with JUCE too could otherwise share parts of JUCE with
+        the plugin and fail while it scans or loads it.
+
 - [Imp] DSPBridge: The interface between the plugins and DSPBridgeServer changed
         again in this version, and with it the bridge protocol version: update
         DSPBridgeServer together with the plugins. A server of 2.2.27 or older
@@ -173,6 +178,10 @@ Osirus/OsTIrus:
         now stay inside the plugin. What the emulator plays, arpeggiator notes
         for example, still goes to the MIDI output, and a request that arrives
         at the MIDI input is still answered there.
+
+- [Fix] BUG-10550 MIDI channels were shown as 0-15 instead of 1-16: on the Multi
+        page of Osirus, and in both Osirus and OsTIrus for the global MIDI
+        channel parameter that the host shows for automation.
 
 Osirus:
 
@@ -357,7 +366,7 @@ Plugin Manager:
 
 - [New] Devices: Added support for the SC-880.
 
-- [New] Devices: Added support for the  PRO-E Arranger.
+- [New] Devices: Added support for the PRO-E Arranger.
 
 - [Imp] SC-8820, SC-8850, NU-10B and MIIG5: more accurate CPU timing, with
         the page mode and refresh of their DRAM and, on the MIIG5, the
@@ -377,6 +386,11 @@ Plugin Manager:
 - [Imp] More accurate effects on the SC-88Pro, SC-8820, SC-8850 and the
         models based on them: delay memory precision, the effect multiplier
         and the effect input.
+
+- [Fix] MT-32/CM-32L: timbres with a ring-only partial structure (10-13) played
+        their first partial on top of the ring product, up to 5 dB too loud and
+        with the wrong timbre; a synth first partial was also ring modulated
+        with the previous voice.
 
 2.2.27:
 
