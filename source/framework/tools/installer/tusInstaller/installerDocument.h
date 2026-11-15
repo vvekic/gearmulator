@@ -31,6 +31,7 @@ namespace pluginManager
 	class ChangelogPage;
 	class DetailPage;
 	class InstallerDataProvider;
+	class OfflinePage;
 	class PreferencesPage;
 
 	// Owns the RmlUi document and turns the catalog into one row per product.
@@ -48,7 +49,8 @@ namespace pluginManager
 			List,
 			Detail,
 			Changelog,
-			Preferences
+			Preferences,
+			Offline
 		};
 
 		explicit InstallerDocument(InstallerDataProvider& _dataProvider);
@@ -89,6 +91,12 @@ namespace pluginManager
 		void openLogin(const std::string& _title, bool _withFolder, LoginDialog::SubmitCallback _onSubmit);
 		void loginFailed(const std::string& _message);
 		void closeLogin();
+
+		// What every row says is installed, read from the disk again. Cheap - it is the manifest and
+		// a look at whether the files are still there - and not a catalog refresh, which goes to the
+		// network and is not what changed. Also whenever the window is brought back, since what is
+		// on disk is changed elsewhere: a plugin started in a DAW says whether it found its ROM.
+		void refreshInstalled();
 
 	private:
 		// What the user has ticked. The rows own this while they exist, and every one of them is
@@ -137,6 +145,12 @@ namespace pluginManager
 
 		void createPreferencesPage(Rml::ElementDocument& _doc, PluginManager& _pluginManager);
 
+		void createOfflinePage(Rml::ElementDocument& _doc, PluginManager& _pluginManager);
+
+		// Installing from another folder, or from the server again with an empty one: the catalog is read
+		// again from there.
+		void setSource(const std::string& _folder);
+
 		// The way out of Preferences, whether by its Back button or by pressing Preferences again.
 		void closePreferences();
 
@@ -171,11 +185,6 @@ namespace pluginManager
 
 		// The chips read the rows, so anything that moves every row at once has to refresh them.
 		void updateFormatChips() const;
-
-		// What every row says is installed, read from the disk again. Cheap - it is the manifest and
-		// a look at whether the files are still there - and not a catalog refresh, which goes to the
-		// network and is not what changed.
-		void refreshInstalled();
 
 		// The status line under the header: how much is on offer, and why that is not everything.
 		std::string summary(size_t _shown) const;
@@ -233,6 +242,7 @@ namespace pluginManager
 		std::unique_ptr<DetailPage> m_detail;
 		std::unique_ptr<ChangelogPage> m_changelog;
 		std::unique_ptr<PreferencesPage> m_preferences;
+		std::unique_ptr<OfflinePage> m_offline;
 		std::unique_ptr<juceRmlUi::Tooltips> m_tooltips;
 		Rml::Element* m_pluginList = nullptr;
 		Rml::Element* m_formatToggles = nullptr;

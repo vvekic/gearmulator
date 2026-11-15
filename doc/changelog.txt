@@ -14,6 +14,10 @@ Framework:
 - [Imp] BUG-10341 Skins can read the current pitch bend and channel pressure of
         every MIDI channel in Lua: midi.getPitchBend and getChannelPressure.
 
+- [Imp] BUG-10438 Skins can list, show and switch the ROMs in Lua and are told
+        when another ROM gets selected: rom.getNames, getSelected, select and
+        onChange.
+
 - [Imp] The patch manager shows the patches that come with a release without
         being told where they are: a folder named "patches" in the plugin's
         folder in Documents/The Usual Suspects is added as a data source.
@@ -43,6 +47,9 @@ Framework:
 - [Fix] BUG-10382 The value tooltip also appeared for buttons, often away from
         the button and over other controls. It is shown for knobs and sliders
         only again.
+
+- [Fix] The value tooltip of a knob stayed empty for values written with angle
+        brackets, for example a panorama of "L< 50.0 %" or "<0>" in OsTIrus.
 
 - [Fix] BUG-10219 The patch name could not be renamed with a double click while
         the name of a parameter was shown over it, for example in the OsTIrus
@@ -196,6 +203,16 @@ Osirus/OsTIrus:
 - [Fix] BUG-10550 MIDI channels were shown as 0-15 instead of 1-16: on the Multi
         page of Osirus, and in both Osirus and OsTIrus for the global MIDI
         channel parameter that the host shows for automation.
+
+- [Fix] A patch name with "<" in it, for example ">>INPUT<<", was cut off in the
+        patch name display and on the part buttons. Renaming a patch with "&" in
+        its name started with "&amp;" in the text field.
+
+- [Fix] BUG-10568 Some multis came back in single mode when a project was
+        reopened or a track was duplicated: the plugin left the multi out of
+        what it saved. A multi, a play mode change or a parameter edit made
+        while the host did not process the plugin, for example while it was
+        bypassed, was not saved either.
 
 Osirus:
 
@@ -392,6 +409,30 @@ Plugin Manager:
 - [Imp] BUG-10562 The window is wider, so that the six formats on macOS leave
         enough room for the name of a plugin and its two chips, and the format
         chips for their tick boxes.
+
+- [Fix] A product name, description, version or error message with "<" in it
+        was shown cut off or not at all.
+
+- [New] BUG-10543 Offline install: the new Offline page prepares a folder with
+        the newest builds of the products and formats you tick, for this
+        computer or another system, with their pictures, the files they bring
+        and the Plugin Manager for that system. On a computer without a
+        network, start the Plugin Manager in that folder and it installs from
+        there. Any folder of our archives can be chosen to install from as well.
+        An effect version is always written with its plugin, and a kept effect
+        version brings its plugin as well.
+
+- [New] BUG-10543 Preferences: downloads can be kept in a folder, which then
+        works as an offline install too.
+
+- [New] BUG-10543 tuspm: "export" prepares an offline install, "--folder"
+        installs from one, and "downloads" sets the folder downloads are kept
+        in.
+
+- [New] BUG-10495 The picture of an installed plugin has a ring that says
+        whether it has a ROM: green when the plugin found one it can use the
+        last time it started, red when it found none or there is no file where
+        it looks. The tooltip says where to put one.
 
 88emuPlayer:
 

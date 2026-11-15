@@ -85,6 +85,7 @@ private:
 	static bool isMultiPartParameter(uint8_t _param);
 	uint8_t firmwareArpMode(Page _page, uint8_t _param, uint8_t _value) const;
 	bool send(Page page, uint8_t part, uint8_t param, uint8_t value);
+	bool sendParameterChange(Page _page, uint8_t _part, uint8_t _param, uint8_t _value);
 	void sendControlCommand(ControlCommand command, uint8_t value);
 	bool sendPreset(uint8_t program, const TPreset& _data, bool isMulti = false);
 	void writeHostBitsWithWait(uint8_t flag0, uint8_t flag1);
@@ -109,7 +110,7 @@ private:
 	void receiveUpgradedPreset();
 	bool processMIDI(const synthLib::SMidiEvent& _ev, FrontpanelState* _fpState);
 
-	static bool isValid(const TPreset& _preset);
+	static bool isValid(const TPreset& _preset, bool _isMulti);
 
 	Hdi08List m_hdi08;
 	std::vector<Hdi08TxParser> m_hdi08TxParsers;
@@ -139,7 +140,6 @@ private:
 	{
 		uint8_t program = 0;
 		bool isMulti = false;
-		TPreset data;
 	};
 
 	std::list<SPendingPresetWrite> m_pendingPresetWrites;
